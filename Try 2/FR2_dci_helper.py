@@ -1,4 +1,18 @@
 # Helper script to parse RRC file and extract relevant information
+#
+# Branch: feature/dci00-dci10-fallback
+# -------------------------------------------------------------------
+# This file is a sibling "branch" of FR2_dci_helper.py.  It carries the
+# same DCI 0_1 / 1_1 modelling as trunk and additionally adds a compact
+# DCI Size Summary covering the C-RNTI fallback formats DCI 0_0 and
+# DCI 1_0 in both UE-Specific Search Space (USS) and Common Search
+# Space Type-3 (CSS-3), per TS 38.212 SS7.3.1.1.1 / 7.3.1.2.1 / 7.3.1.0
+# and TS 38.331 V17 ServingCellConfigCommon -> initialDownlinkBWP /
+# initialUplinkBWP -> genericParameters (BWP-DownlinkCommon /
+# BWP-UplinkCommon).
+#
+# Trunk file FR2_dci_helper.py is intentionally left untouched so it
+# remains available as the stable reference.
 import re
 import math
 import os
@@ -327,7 +341,7 @@ def count_codebook_srs_resource_sets_prefer_reconfig():
     active UL BWP.  Applies the same Reconfig > Setup preference used for
     other UL-scoped parameters.
 
-    Per TS 38.212 §7.3.1.1.2: SRS resource set indicator is 2 bits when
+    Per TS 38.212 S7.3.1.1.2: SRS resource set indicator is 2 bits when
     txConfig=codebook and exactly two (or more) SRS resource sets are
     configured with usage=codebook; 0 bits otherwise.
 
@@ -365,6 +379,201 @@ def count_codebook_srs_resource_sets_prefer_reconfig():
         if count > 0:
             return count, False
     return 0, False
+
+
+# ---------------------------------------------------------------------------
+# Initial BWP parsers for fallback DCI 0_0 / 1_0 (TS 38.331 V17, page 805)
+#
+#   ServingCellConfigCommon
+#     -> downlinkConfigCommon (DownlinkConfigCommon)
+#         -> initialDownlinkBWP (BWP-DownlinkCommon)
+#             -> genericParameters (BWP)
+#                 -> { locationAndBandwidth, subcarrierSpacing }
+#     -> uplinkConfigCommon   (UplinkConfigCommon)
+#         -> initialUplinkBWP (BWP-UplinkCommon)   ... same shape
+#
+# Notes
+#  * BWP-DownlinkDedicated / BWP-UplinkDedicated (the "dedicated" variant
+#    referenced from ServingCellConfig) does NOT carry genericParameters.
+#    We therefore skip any 'initialDownlinkBWP' / 'initialUplinkBWP' anchor
+#    that is not followed by a 'genericParameters' sub-block.
+#  * For NR-DC SCG inputs the SCG primary cell's
+#    'mrdc-SecondaryCellGroup nr-SCG' branch is used; otherwise the RRC
+#    Reconfiguration section is preferred over RRC Setup, matching the
+#    convention already in place for FDRA / TDA / Beta-offset etc.
+# ---------------------------------------------------------------------------
+
+
+def _parse_initial_bwp_lab_scs(direction, scan_from=0):
+    """direction in {'DL','UL'}.  Scan from `scan_from` for the first
+    'initialDownlinkBWP' / 'initialUplinkBWP' anchor that is followed by a
+    'genericParameters {' block, then return (locationAndBandwidth_int,
+    subcarrierSpacing_int_kHz_value).  Either component is None if not
+    found within the block.
+    """
+    if direction == 'DL':
+        anchor = re.compile(r"\binitialDownlinkBWP\b")
+    else:
+        anchor = re.compile(r"\binitialUplinkBWP\b")
+    gp_pat  = re.compile(r"\bgenericParameters\b")
+    lab_pat = re.compile(r"\blocationAndBandwidth\s+(\d+)")
+    scs_pat = re.compile(r"\bsubcarrierSpacing\s+kHz(\d+)")
+
+    s = max(0, scan_from)
+    while s < rrclength:
+        if anchor.search(rows[s]) is None:
+            s += 1
+            continue
+        # Look ahead for genericParameters within a small window (the
+        # BWP-DownlinkCommon block is short).  If we don't find it, this
+        # anchor is likely the dedicated variant under ServingCellConfig
+        # (no genericParameters), so skip and continue searching.
+        gp_idx = -1
+        for j in range(s, min(s + 40, rrclength)):
+            if gp_pat.search(rows[j]):
+                gp_idx = j
+                break
+        if gp_idx < 0:
+            s += 1
+            continue
+        lab = scs = None
+        for j in range(gp_idx, min(gp_idx + 40, rrclength)):
+            if lab is None:
+                m = lab_pat.search(rows[j])
+                if m:
+                    lab = int(m.group(1))
+            if scs is None:
+                m = scs_pat.search(rows[j])
+                if m:
+                    scs = int(m.group(1))
+            if lab is not None and scs is not None:
+                break
+        return lab, scs
+    return None, None
+
+
+def parse_initial_dl_bwp_lab_scs_prefer_reconfig():
+    """Returns (lab, scs, source_label).
+    source_label in {'SCG (mrdc-SecondaryCellGroup nr-SCG)',
+                     'rrcReconfiguration', 'rrcSetup', 'not found'}.
+    """
+    nrdc = _find_nrdc_nrscg_start_index()
+    if nrdc >= 0:
+        lab, scs = _parse_initial_bwp_lab_scs('DL', scan_from=nrdc)
+        if lab is not None:
+            return lab, scs, 'SCG (mrdc-SecondaryCellGroup nr-SCG)'
+    start, both = _find_reconfig_start_index()
+    if both:
+        lab, scs = _parse_initial_bwp_lab_scs('DL', scan_from=start)
+        if lab is not None:
+            return lab, scs, 'rrcReconfiguration'
+    lab, scs = _parse_initial_bwp_lab_scs('DL', scan_from=0)
+    if lab is not None:
+        return lab, scs, ('rrcSetup' if not both else 'rrcReconfiguration')
+    return None, None, 'not found'
+
+
+def parse_initial_ul_bwp_lab_scs_prefer_reconfig():
+    """Returns (lab, scs, source_label) for the initial UL BWP."""
+    nrdc = _find_nrdc_nrscg_start_index()
+    if nrdc >= 0:
+        lab, scs = _parse_initial_bwp_lab_scs('UL', scan_from=nrdc)
+        if lab is not None:
+            return lab, scs, 'SCG (mrdc-SecondaryCellGroup nr-SCG)'
+    start, both = _find_reconfig_start_index()
+    if both:
+        lab, scs = _parse_initial_bwp_lab_scs('UL', scan_from=start)
+        if lab is not None:
+            return lab, scs, 'rrcReconfiguration'
+    lab, scs = _parse_initial_bwp_lab_scs('UL', scan_from=0)
+    if lab is not None:
+        return lab, scs, ('rrcSetup' if not both else 'rrcReconfiguration')
+    return None, None, 'not found'
+
+
+# ---------------------------------------------------------------------------
+# Fallback DCI size helpers (TS 38.212 SS7.3.1.1.1, 7.3.1.2.1, 7.3.1.0)
+# ---------------------------------------------------------------------------
+
+
+def dci00_size(n_rb_ul, sul_configured, in_uss):
+    """Natural (pre-alignment) size of DCI Format 0_0 per TS 38.212 S7.3.1.1.1.
+
+    Fields (in order):
+      Identifier for DCI formats          = 1
+      Frequency domain resource assignment = ceil(log2(N*(N+1)/2))    (RA Type-1)
+      Time domain resource assignment      = 4
+      Frequency hopping flag               = 1
+      Modulation and coding scheme         = 5
+      New data indicator                   = 1
+      Redundancy version                   = 2
+      HARQ process number                  = 4
+      TPC command for scheduled PUSCH      = 2
+      UL/SUL indicator                     = 1   (USS only when SUL is RRC-configured)
+
+    `in_uss` controls whether the UL/SUL bit is included; UL/SUL is only
+    present in DCI 0_0 monitored on UE-Specific SS, never in CSS Type-3.
+    """
+    if n_rb_ul is None or n_rb_ul <= 0:
+        return None
+    fdra = math.ceil(math.log2(n_rb_ul * (n_rb_ul + 1) / 2))
+    bits = (1
+            + fdra
+            + 4
+            + 1
+            + 5
+            + 1
+            + 2
+            + 4
+            + 2)
+    if in_uss and sul_configured:
+        bits += 1
+    return bits
+
+
+def dci10_size(n_rb_dl):
+    """Natural (pre-alignment) size of DCI Format 1_0 per TS 38.212 S7.3.1.2.1.
+
+    Fields (in order):
+      Identifier for DCI formats              = 1
+      Frequency domain resource assignment    = ceil(log2(N*(N+1)/2))
+      Time domain resource assignment         = 4
+      VRB-to-PRB mapping                      = 1
+      Modulation and coding scheme            = 5
+      New data indicator                      = 1
+      Redundancy version                      = 2
+      HARQ process number                     = 4
+      Downlink assignment index               = 2
+      TPC command for scheduled PUCCH         = 2
+      PUCCH resource indicator                = 3
+      PDSCH-to-HARQ_feedback timing indicator = 3
+    """
+    if n_rb_dl is None or n_rb_dl <= 0:
+        return None
+    fdra = math.ceil(math.log2(n_rb_dl * (n_rb_dl + 1) / 2))
+    bits = (1
+            + fdra
+            + 4
+            + 1
+            + 5
+            + 1
+            + 2
+            + 4
+            + 2
+            + 2
+            + 3
+            + 3)
+    return bits
+
+
+def align_fallback(d00, d10):
+    """Align DCI 0_0 / 1_0 monitored in the same search-space location per
+    TS 38.212 S7.3.1.0.  The aligned size is max(d00, d10); the smaller one
+    pads its FDRA so both formats become the same size for blind decoding.
+    Returns None if either side is missing."""
+    if d00 is None or d10 is None:
+        return None
+    return max(d00, d10)
 
 
 def srs_codebook_resource_count():
@@ -1232,7 +1441,7 @@ def main():
     # ------------------------------------------------------------------ #
     #  Standard reference banner                                          #
     # ------------------------------------------------------------------ #
-    SPEC_REF  = "3GPP TS 38.212 \u00a77.3.1"
+    SPEC_REF  = "3GPP TS 38.212 \u00a77.3.1  +  TS 38.331 V17 ServingCellConfigCommon"
     INPUT_SRC = "Input: RRC text file (.txt)"
     banner_inner = f"  {SPEC_REF}    {INPUT_SRC}  "
     banner_w = max(len(banner_inner), 74)
@@ -1609,7 +1818,7 @@ def main():
     ]
     print_dci_table('Format 1_1 (PDSCH - Normal)', fields11)
 
-    # ── DCI 1_1 – Conditional / Optional fields (TS 38.212 §7.3.1.2.2) ──────
+    # DCI 1_1 - Conditional / Optional fields (TS 38.212 7.3.1.2.2)
     fields11_optional = [
         # After TPC / before PUCCH resource indicator
         ('Second TPC command for scheduled PUCCH',   0,
@@ -1660,7 +1869,7 @@ def main():
                           checkvalue2(maxcodeblockgroupspertransportblockvalue01))
     totallength01 = fixedlength01 + modifiablelength01
 
-    # ── Core DCI 0_1 fields (original modelled fields) ──────────────────────
+    # Core DCI 0_1 fields (original modelled fields)
     fields01 = [
         ('Identifier for DCI formats',                      1,                                       "Fixed 1 bit (TS 38.212 \u00a77.3.1.1.2)"),
         ('Carrier indicator',                                0,                                       "Cross-carrier scheduling not configured -> 0 bits"),
@@ -1688,7 +1897,7 @@ def main():
     ]
     print_dci_table('Format 0_1 (PUSCH - Normal)', fields01)
 
-    # ── DCI 0_1 – Conditional / Optional fields (TS 38.212 \u00a77.3.1.1.2) ────
+    # DCI 0_1 - Conditional / Optional fields (TS 38.212 7.3.1.1.2)
     # These fields are present in the spec but evaluate to 0 bits for this
     # RRC configuration.  Shown separately so the core table stays clean.
     _srs_set_src = (" [from Reconfig]" if _srs_set_from_reconfig else
@@ -1735,5 +1944,79 @@ def main():
          "pdcch-SkippingDurationList / searchSpaceGroupIdList-r17 not configured -> 0 bits"),
     ]
     print_dci_table('Format 0_1 \u2013 Conditional/Optional Fields (TS 38.212 \u00a77.3.1.1.2)', fields01_optional)
+
+    # ------------------------------------------------------------------ #
+    #  DCI Size Summary (all formats) - core scope:                      #
+    #    * C-RNTI USS    (active dedicated BWP)                          #
+    #    * C-RNTI CSS-3  (initial common BWP via ServingCellConfigCommon)#
+    #  for fallback DCI 0_0 / 1_0 (TS 38.212 SS7.3.1.1.1, 7.3.1.2.1).    #
+    #  Aligned-size rule per TS 38.212 S7.3.1.0 (max(0_0, 1_0)).         #
+    # ------------------------------------------------------------------ #
+
+    init_dl_lab, init_dl_scs, _init_dl_src = parse_initial_dl_bwp_lab_scs_prefer_reconfig()
+    init_ul_lab, init_ul_scs, _init_ul_src = parse_initial_ul_bwp_lab_scs_prefer_reconfig()
+
+    init_dlnrb = init_dlstartrb = None
+    if init_dl_lab is not None:
+        _res = getbwprbandstartrb(init_dl_lab)
+        if _res is not None:
+            init_dlnrb, init_dlstartrb = _res
+
+    init_ulnrb = init_ulstartrb = None
+    if init_ul_lab is not None:
+        _res = getbwprbandstartrb(init_ul_lab)
+        if _res is not None:
+            init_ulnrb, init_ulstartrb = _res
+
+    sul_configured = (ulsulfieldvalue == 1)
+
+    # USS (active dedicated BWP) - reuse already-parsed dlnrb / ulnrb
+    d00_uss_nat = dci00_size(ulnrb, sul_configured, in_uss=True)
+    d10_uss_nat = dci10_size(dlnrb)
+    d_uss_aligned = align_fallback(d00_uss_nat, d10_uss_nat)
+
+    # CSS Type-3 (initial common BWP from ServingCellConfigCommon)
+    d00_css_nat = dci00_size(init_ulnrb, sul_configured=False, in_uss=False)
+    d10_css_nat = dci10_size(init_dlnrb)
+    d_css_aligned = align_fallback(d00_css_nat, d10_css_nat)
+
+    def _src(label, n, scs):
+        if n is None:
+            return f"N_RB unavailable ({label})"
+        return f"N_RB={n} (from {label}; SCS=kHz{scs if scs is not None else '?'})"
+
+    _dl_uss_src = "active dedicated downlinkBWP-ToAddModList"
+    _ul_uss_src = "active dedicated uplinkBWP-ToAddModList"
+
+    fb_summary = [
+        ('DCI 0_0 - C-RNTI in USS (active dedicated UL BWP)',
+         d_uss_aligned,
+         f"{_src(_ul_uss_src, ulnrb, subcarrierspacingulvalue)}; "
+         f"natural 0_0={d00_uss_nat} / 1_0={d10_uss_nat}; aligned=max -> {d_uss_aligned}"),
+
+        ('DCI 1_0 - C-RNTI in USS (active dedicated DL BWP)',
+         d_uss_aligned,
+         f"{_src(_dl_uss_src, dlnrb, subcarrierspacingdlvalue)}; "
+         f"natural 1_0={d10_uss_nat} / 0_0={d00_uss_nat}; aligned=max -> {d_uss_aligned}"),
+
+        ('DCI 0_0 - C-RNTI in CSS Type-3 (initial UL BWP common)',
+         d_css_aligned,
+         f"{_src(_init_ul_src, init_ulnrb, init_ul_scs)}; "
+         f"natural 0_0={d00_css_nat} / 1_0={d10_css_nat}; aligned=max -> {d_css_aligned}"),
+
+        ('DCI 1_0 - C-RNTI in CSS Type-3 (initial DL BWP common)',
+         d_css_aligned,
+         f"{_src(_init_dl_src, init_dlnrb, init_dl_scs)}; "
+         f"natural 1_0={d10_css_nat} / 0_0={d00_css_nat}; aligned=max -> {d_css_aligned}"),
+
+        ('DCI 0_1 (PUSCH normal)',
+         totallength01,
+         f"From per-field calculation in Format 0_1 table above ({totallength01} bits)"),
+
+        ('DCI 1_1 (PDSCH normal)',
+         totallength11,
+         f"From per-field calculation in Format 1_1 table above ({totallength11} bits)"),
+    ]
+    print_dci_table('Size Summary (all formats, aligned per TS 38.212 \u00a77.3.1.0)', fb_summary)
 
 main()
