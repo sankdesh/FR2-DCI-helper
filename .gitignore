@@ -1,0 +1,37 @@
+# DCI Decoder workspace .gitignore
+#
+# Source control here only tracks the helper scripts and small text
+# fixtures. Large captures, archives, spec PDFs, and Office files
+# are intentionally excluded - they belong on disk but not in git.
+
+# Python build / cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+
+# Logs / captures (large binary)
+*.hdf
+*.7z
+*.pcap
+*.pcap*
+*.gz
+*.zip
+
+# 3GPP specification PDFs (very large)
+ts_*.pdf
+
+# Office docs (binary)
+*.xlsx
+*.xls
+*.docx
+*.doc
+
+# Editor / OS noise
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
