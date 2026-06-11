@@ -25,15 +25,19 @@ python FR2_dci_helper.py --gui                      # tkinter GUI
 python FR2_dci_helper.py log.txt --format summary   # compact summary + configs
 ```
 
-Build a Windows one-file EXE (~10 MB):
+### Windows executable
+
+Prebuilt binary (no Python install required):
+
+**[Try 2/dist/FR2_dci_helper.exe](Try%202/dist/FR2_dci_helper.exe)** (~10 MB, tkinter GUI)
+
+Build from source:
 
 ```bash
 cd "Try 2"
 pip install pyinstaller
 pyinstaller FR2_dci_helper.spec
 ```
-
-Output: `dist/FR2_dci_helper.exe`
 
 ## Input
 

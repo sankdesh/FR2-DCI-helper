@@ -12,6 +12,9 @@ __pycache__/
 venv/
 build/
 dist/
+!Try 2/dist/
+Try 2/dist/*
+!Try 2/dist/FR2_dci_helper.exe
 
 # Logs / captures (large binary)
 *.hdf
