@@ -27,7 +27,7 @@ except Exception:
 if os.name == "nt":
     os.system("")
 
-USE_COLOR = sys.stdout.isatty()
+USE_COLOR = sys.stdout is not None and sys.stdout.isatty()
 
 def _c(code, s):
     return f"\033[{code}m{s}\033[0m" if USE_COLOR else s
@@ -39,14 +39,215 @@ GREEN   = lambda s: _c("32", s)
 YELLOW  = lambda s: _c("33", s)
 MAGENTA = lambda s: _c("35", s)
 
-filepath = input(
-    r"Path to RRC file (e.g C:\Users\sankdesh\Downloads\NSA_FR2_1.txt) :"
-)
-f = open(filepath, 'r')
+def _parse_cli():
+    """CLI handler.  Supported invocations:
 
-# Returns a file lines as a list where lines are list items
-rows = f.readlines()
-rrclength = len(rows)
+        FR2_dci_helper [PATH] [options]
+
+    Options:
+        --rrc-source {auto|reconfig|setup}
+              Controls RRC merge behaviour when the capture contains BOTH
+              rrcSetup and rrcReconfiguration:
+                auto/reconfig  prefer rrcReconfiguration (default, spec-correct)
+                setup          ignore Reconfig; read every IE from rrcSetup
+
+        --format {full|summary|quiet}
+              Output verbosity:
+                full     banner + all per-field tables + compact summary + config files (default)
+                summary  banner + compact summary + config files; no per-field tables
+                quiet    write config files only; single-line confirmation
+
+        --output-dir DIR  (-o DIR)
+              Directory for dci_0_1_fields_config / dci_1_1_fields_config.
+              Default: same folder as the input RRC file.
+
+        --no-config
+              Analyse and print only; do NOT write config files.
+
+        --no-color
+              Force ANSI color off (useful when piping or logging).
+
+        --show-optional
+              When --format=full, also print the Conditional/Optional fields
+              tables for DCI 0_1 and 1_1 (hidden by default).
+
+        --gui
+              Open the GUI window even when a file path is given.
+
+    Returns (filepath_or_None, rrc_source, fmt, output_dir, no_config,
+             no_color, show_optional, gui).
+    When filepath_or_None is None the GUI should be launched.
+
+    Input must be a **raw RRC text capture** (ASN.1-style or QCAT/QXDM export with
+    ``rrcSetup`` / ``rrcReconfiguration`` / ``message c1`` lines). Do not pass
+    saved FR2_dci_helper console output (e.g. ``verify_*.txt`` prints); the tool
+    detects that pattern and exits with an error.
+    """
+    args = sys.argv[1:]
+    path = None
+    rrc_source = 'auto'
+    fmt = 'full'
+    output_dir = None
+    no_config = False
+    no_color = False
+    show_optional = False
+    launch_gui = False
+    i = 0
+
+    def _next_val(flag):
+        nonlocal i
+        i += 1
+        if i >= len(args):
+            print(f"ERROR: {flag} requires an argument", file=sys.stderr)
+            sys.exit(2)
+        return args[i]
+
+    while i < len(args):
+        a = args[i]
+
+        if a in ('-h', '--help'):
+            print(
+                "Usage: FR2_dci_helper [PATH] [options]\n\n"
+                "  PATH                    RRC text file (.txt).  If omitted the GUI opens.\n\n"
+                "  --rrc-source auto       (default) prefer rrcReconfiguration when both messages present\n"
+                "               reconfig  alias for 'auto'\n"
+                "               setup     prefer rrcSetup; ignore Reconfig overrides\n\n"
+                "  --format full           (default) banner + all per-field tables + summary + configs\n"
+                "           summary        banner + compact summary + configs; no per-field tables\n"
+                "           quiet          write config files only; single-line confirmation\n\n"
+                "  -o DIR / --output-dir DIR\n"
+                "                          folder for dci_0_1_fields_config / dci_1_1_fields_config\n"
+                "                          (default: same folder as the input file)\n\n"
+                "  --no-config             analyse only; do NOT write config files\n"
+                "  --no-color              force ANSI color off\n"
+                "  --show-optional         with --format full, also print conditional/optional field tables\n"
+                "  --gui                   open GUI even when PATH is given\n"
+            )
+            sys.exit(0)
+
+        elif a in ('--rrc-source',):
+            v = _next_val(a).lower()
+            if v not in ('auto', 'reconfig', 'setup'):
+                print(f"ERROR: --rrc-source must be auto|reconfig|setup, got '{v}'",
+                      file=sys.stderr)
+                sys.exit(2)
+            rrc_source = v
+
+        elif a.startswith('--rrc-source='):
+            v = a.split('=', 1)[1].lower()
+            if v not in ('auto', 'reconfig', 'setup'):
+                print(f"ERROR: --rrc-source must be auto|reconfig|setup, got '{v}'",
+                      file=sys.stderr)
+                sys.exit(2)
+            rrc_source = v
+
+        elif a == '--format':
+            v = _next_val(a).lower()
+            if v not in ('full', 'summary', 'quiet'):
+                print(f"ERROR: --format must be full|summary|quiet, got '{v}'",
+                      file=sys.stderr)
+                sys.exit(2)
+            fmt = v
+
+        elif a.startswith('--format='):
+            v = a.split('=', 1)[1].lower()
+            if v not in ('full', 'summary', 'quiet'):
+                print(f"ERROR: --format must be full|summary|quiet, got '{v}'",
+                      file=sys.stderr)
+                sys.exit(2)
+            fmt = v
+
+        elif a in ('-o', '--output-dir'):
+            output_dir = _next_val(a)
+
+        elif a.startswith('--output-dir='):
+            output_dir = a.split('=', 1)[1]
+
+        elif a == '--no-config':
+            no_config = True
+
+        elif a == '--no-color':
+            no_color = True
+
+        elif a == '--show-optional':
+            show_optional = True
+
+        elif a == '--gui':
+            launch_gui = True
+
+        elif a.startswith('-'):
+            print(f"ERROR: unknown option '{a}'", file=sys.stderr)
+            sys.exit(2)
+
+        elif path is None:
+            path = a
+
+        else:
+            print(f"ERROR: unexpected positional argument '{a}'", file=sys.stderr)
+            sys.exit(2)
+
+        i += 1
+
+    return path, rrc_source, fmt, output_dir, no_config, no_color, show_optional, launch_gui
+
+
+_cli_path, _RRC_SOURCE, _FORMAT, _OUTPUT_DIR, _NO_CONFIG, _NO_COLOR, _SHOW_OPTIONAL, _LAUNCH_GUI = _parse_cli()
+
+# Override color if --no-color was passed
+if _NO_COLOR:
+    USE_COLOR = False
+
+# Launch GUI when no file given or --gui flag present
+if _cli_path is None or _LAUNCH_GUI:
+    import importlib
+    _gui_mod = importlib.import_module(__name__) if False else None
+    # Defer GUI launch until after all helpers are defined (end of file).
+    _DO_GUI = True
+    # Provide a dummy filepath for module-level code; main() won't run.
+    if _cli_path is None:
+        import tempfile as _tempfile
+        filepath = _tempfile.mktemp(suffix='.txt')  # placeholder never opened
+    else:
+        filepath = _cli_path
+else:
+    _DO_GUI = False
+    filepath = _cli_path
+
+_RRC_PREFER_SETUP = (_RRC_SOURCE == 'setup')
+
+if _DO_GUI:
+    # Provide empty rows so module-level code that references `rows` /
+    # `rrclength` at definition time (pattern constants etc.) still works.
+    rows = []
+    rrclength = 0
+else:
+    f = open(filepath, 'r', encoding='utf-8', errors='replace')
+
+    # Returns a file lines as a list where lines are list items
+    rows = f.readlines()
+    rrclength = len(rows)
+
+    # When --rrc-source=setup is in effect AND the capture contains both an
+    # rrcSetup and a later rrcReconfiguration message, truncate `rows` so that
+    # every downstream parser (including the global ones that don't take a
+    # scan_from argument such as numericalparser2 and writtenparser2) only sees
+    # the rrcSetup section.  Without this, a parser whose target IE is absent
+    # from rrcSetup but present in rrcReconfiguration (e.g. reportTriggerSize)
+    # would still pick up the Reconfig value from later in the file, defeating
+    # the user's intent of "ignore Reconfig overrides".
+    if _RRC_PREFER_SETUP:
+        _setup_idx = -1
+        _reconfig_idx = -1
+        for _i, _ln in enumerate(rows):
+            if _setup_idx < 0 and re.search(r"\brrcSetup\b", _ln):
+                _setup_idx = _i
+            if _reconfig_idx < 0 and re.search(r"\brrcReconfiguration\b", _ln):
+                _reconfig_idx = _i
+            if _setup_idx >= 0 and _reconfig_idx >= 0:
+                break
+        if _setup_idx >= 0 and _reconfig_idx > _setup_idx:
+            rows = rows[:_reconfig_idx]
+            rrclength = len(rows)
 
 # Patterns from RRC for parsing
 BWPDownlink = 'downlinkBWP-ToAddModList'
@@ -64,8 +265,13 @@ resourceAllocationType1 = 'resourceAllocationType1'
 bwpDedicated = 'bwp-Dedicated'
 puschTimeAllocationList1 = 'pusch-TimeDomainAllocationList: s'
 pdschTimeAllocationList1 = 'pdsch-TimeDomainAllocationList: s'
-puschTimeAllocationList = 'pusch-TimeDomainAllocationList'
-pdschTimeAllocationList = 'pdsch-TimeDomainAllocationList'
+# Strict patterns: only match the legacy R15 IEs, never the R16 / R17
+# DCI-x-y / -r16 / -r17 variants which carry the same name as a prefix
+# (e.g. pusch-TimeDomainAllocationListDCI-0-1-r16 or
+# pdsch-TimeDomainAllocationList-r16).  Those overrides are looked up
+# separately by parse_pusch_tda_r16_dci01_count / parse_pdsch_tda_r16_count.
+puschTimeAllocationList = r"\bpusch-TimeDomainAllocationList\b(?!-r1\d)(?!DCI)"
+pdschTimeAllocationList = r"\bpdsch-TimeDomainAllocationList\b(?!-r1\d)(?!DCI)"
 transformprecoderdisabled = r'transformPrecoder[\s:]+disabled'
 transformprecoderenabled = r'transformPrecoder[\s:]+enabled'
 nrofSRSPorts = 'nrofSRS-Ports'
@@ -147,13 +353,212 @@ def srs_resource_set_to_add_mod_count(header_idx: int):
     return n if n > 0 else None
 
 
+def _parse_physical_cell_id():
+    """Return the Physical Cell ID (N_ID^cell).
+
+    Primary source: scramblingID0 inside the PDSCH DMRS config
+    (TS 38.211 §7.4.1.1.1 — when not configured it equals N_ID^cell,
+    and the network almost always explicitly writes it equal to the PCI).
+    Fallback: log-header line 'Physical Cell ID = <n>'.
+    Returns None when neither is found.
+    """
+    # Primary: scramblingID0 (integer 0-1007)
+    sid_pat = re.compile(r"\bscramblingID0\s+(\d+)")
+    for ln in rows:
+        m = sid_pat.search(ln)
+        if m:
+            return int(m.group(1))
+    # Fallback: QCAT/QXDM log header
+    hdr_pat = re.compile(r"Physical\s+Cell\s+ID\s*=\s*(\d+)", re.I)
+    for ln in rows:
+        m = hdr_pat.search(ln)
+        if m:
+            return int(m.group(1))
+    return None
+
+
+def _parse_log_header_cell_fields():
+    """Optional QCAT/QXDM header fields (first ~50 lines only)."""
+    out = {}
+    nci_pat = re.compile(r"NR\s+Cell\s+Global\s+ID\s*=\s*(\S+)", re.I)
+    freq_pat = re.compile(r"^Freq\s*=\s*(.+)$", re.I)
+    for ln in rows[:50]:
+        m = nci_pat.search(ln)
+        if m:
+            val = m.group(1).strip()
+            if val.upper() != "N/A":
+                out["ncgi"] = val
+        m = freq_pat.search(ln.strip())
+        if m:
+            val = m.group(1).strip()
+            if val.upper() != "N/A":
+                out["freq"] = val
+    return out
+
+
+def _detect_saved_fr2_output_text():
+    """True when rows look like a prior FR2_dci_helper console capture, not raw RRC.
+
+    Users sometimes re-open ``verify_*.txt`` or redirect output and pass it back as
+    input — that yields empty cell identity, bogus N_RB, and CSS aligned None.
+    """
+    if rrclength < 15:
+        return False
+    head = "".join(rows[: min(220, rrclength)])
+    if "Path to RRC file" in head:
+        return True
+    if "Cell parameters" in head and "DCI Format 1_1" in head:
+        return True
+    if "DCI Size Summary" in head and "TOTAL DCI SIZE" in head:
+        return True
+    return False
+
+
+def _abort_if_saved_output_instead_of_rrc():
+    if not _detect_saved_fr2_output_text():
+        return
+    print(
+        "\nERROR: This file looks like saved FR2_dci_helper output (banner / tables / "
+        "interactive prompt), not a raw RRC text capture.\n\n"
+        "  Pass the original RRC export instead (lines such as 'message c1 : rrcReconfiguration', "
+        "'rrcSetup', or 'DL_DCCH / RRCReconfiguration' from QCAT/QXDM/Wireshark text export).\n"
+        "  Files named verify_*.txt in this repo are usually verification prints, not inputs.\n",
+        file=sys.stderr,
+    )
+    sys.exit(2)
+
+
+def _parse_cell_identity_fields(scan_from=0):
+    """Extract spCell identity IEs from the first spCellConfig at/after scan_from.
+
+    Returns a dict that may contain phys_cell_id, serv_cell_index, band,
+    ssb_arfcn, and point_a_arfcn (all ints where applicable).
+    """
+    sp_cfg = re.compile(r"\bspCellConfig\b")
+    phys_pat = re.compile(r"\bphysCellId\s*[: ]?\s*(\d+)")
+    serv_pat = re.compile(r"\bservCellIndex\s*[: ]?\s*(\d+)")
+    ssb_pat = re.compile(r"\babsoluteFrequencySSB\s+(\d+)")
+    pointa_pat = re.compile(r"\babsoluteFrequencyPointA\s+(\d+)")
+    band_list_pat = re.compile(r"\bfrequencyBandList\b")
+    band_num_pat = re.compile(r"^\s*(\d+)\s*,?\s*$")
+
+    start = max(0, scan_from)
+    for i in range(start, rrclength):
+        if sp_cfg.search(rows[i]) is None:
+            continue
+        end = min(i + 500, rrclength)
+        out = {}
+        depth = 0
+        for j in range(i, end):
+            ln = rows[j]
+            before = depth
+            depth += ln.count("{") - ln.count("}")
+            if j > i and depth <= 0 and before > 0:
+                break
+            m = phys_pat.search(ln)
+            if m and "phys_cell_id" not in out:
+                out["phys_cell_id"] = int(m.group(1))
+            m = serv_pat.search(ln)
+            if m and "serv_cell_index" not in out:
+                out["serv_cell_index"] = int(m.group(1))
+            m = ssb_pat.search(ln)
+            if m and "ssb_arfcn" not in out:
+                out["ssb_arfcn"] = int(m.group(1))
+            m = pointa_pat.search(ln)
+            if m and "point_a_arfcn" not in out:
+                out["point_a_arfcn"] = int(m.group(1))
+            if band_list_pat.search(ln) and "band" not in out:
+                for k in range(j + 1, min(j + 8, end)):
+                    bm = band_num_pat.search(rows[k])
+                    if bm:
+                        out["band"] = int(bm.group(1))
+                        break
+        if out:
+            return out
+    return {}
+
+
+def _enrich_cell_identity_loose(fields):
+    """Fill missing identity keys from patterns outside ``spCellConfigCommon``.
+
+    Reconfiguration-only captures often have ``spCellConfigDedicated`` only (no
+    common ARFCNs / band list under ``spCellConfig``).  ``measObjectNR`` still
+    carries ``freqBandIndicatorNR`` and ``ssbFrequency`` (same ARFCN role as
+    ``absoluteFrequencySSB`` for display).  Only fills keys that are still absent.
+    """
+    out = dict(fields)
+    if all(
+        out.get(k) is not None
+        for k in ("band", "ssb_arfcn", "point_a_arfcn")
+    ):
+        return out
+    band_nr = re.compile(r"\bfreqBandIndicatorNR\s+(\d+)")
+    ssb_abs = re.compile(r"\babsoluteFrequencySSB\s+(\d+)")
+    ssb_mo = re.compile(r"\bssbFrequency\s+(\d+)")
+    point_a = re.compile(r"\babsoluteFrequencyPointA\s+(\d+)")
+
+    for i in range(rrclength):
+        ln = rows[i]
+        if out.get("band") is None:
+            m = band_nr.search(ln)
+            if m:
+                out["band"] = int(m.group(1))
+        if out.get("ssb_arfcn") is None:
+            m = ssb_abs.search(ln) or ssb_mo.search(ln)
+            if m:
+                out["ssb_arfcn"] = int(m.group(1))
+        if out.get("point_a_arfcn") is None:
+            m = point_a.search(ln)
+            if m:
+                out["point_a_arfcn"] = int(m.group(1))
+        if all(
+            out.get(k) is not None
+            for k in ("band", "ssb_arfcn", "point_a_arfcn")
+        ):
+            break
+    return out
+
+
+def parse_cell_identity_prefer_reconfig():
+    """Prefer NR-DC SCG, then rrcReconfiguration, then whole file for spCell IEs."""
+    chosen = {}
+    nrdc = _find_nrdc_nrscg_start_index()
+    if nrdc >= 0:
+        chosen = _parse_cell_identity_fields(nrdc) or {}
+    if not chosen:
+        start, both = _find_reconfig_start_index()
+        if both:
+            chosen = _parse_cell_identity_fields(start) or {}
+    if not chosen:
+        chosen = _parse_cell_identity_fields(0) or {}
+    return _enrich_cell_identity_loose(chosen)
+
+
+def _print_cell_param_rows(rows_of_pairs):
+    """Print one or more rows of key: value pairs for the cell summary block."""
+    for pairs in rows_of_pairs:
+        print("  " + "   ".join(
+            f"{DIM(k + ':') if USE_COLOR else k + ':'} {BOLD(v) if USE_COLOR else v}"
+            for k, v in pairs
+        ))
+
+
 def _find_reconfig_start_index():
     """Return (start_index, both_present).
     If the capture contains BOTH rrcSetup and rrcReconfiguration messages, the
     start_index is the line where the first rrcReconfiguration appears, so that
     downstream parsing ignores any stale values from the earlier rrcSetup block.
     Otherwise start_index is 0 (search the whole file).
+
+    When the user selected --rrc-source=setup we short-circuit to (0, False)
+    so every downstream parser scans the file from the top (rrcSetup appears
+    earlier than rrcReconfiguration in a typical capture, so the first match
+    a parser finds is the Setup-side value).  This is the explicit way to
+    align the script's output with a Wireshark dissector profile that was
+    bound to the pre-Reconfig cell context.
     """
+    if _RRC_PREFER_SETUP:
+        return 0, False
     has_setup = False
     has_reconfig = False
     reconfig_idx = None
@@ -177,7 +582,13 @@ def _find_nrdc_nrscg_start_index():
 
     The returned index is the starting anchor used to scope SCG-specific
     parsing (e.g. the PUSCH pusch-TimeDomainAllocationList for DCI 0_1).
+
+    When the user selected --rrc-source=setup we short-circuit to -1.
+    NR-DC SCG content only exists inside an rrcReconfiguration payload, so
+    asking for Setup-side values implies SCG scoping is also off.
     """
+    if _RRC_PREFER_SETUP:
+        return -1
     cfg_pat = re.compile(r"mrdc-SecondaryCellGroupConfig\s+setup")
     scg_pat = re.compile(r"mrdc-SecondaryCellGroup\s+nr-SCG")
     cfg_idx = -1
@@ -190,6 +601,92 @@ def _find_nrdc_nrscg_start_index():
     for i in range(cfg_idx, min(cfg_idx + 500, rrclength)):
         if scg_pat.search(rows[i]):
             return i
+    return -1
+
+
+def _resolve_active_dedicated_bwp_block_start(direction):
+    """Return (list_header_line_index, bwp_entry_open_brace_line_index,
+    active_bwp_id_str) for the active dedicated BWP-Downlink / BWP-Uplink
+    entry.
+
+    direction is 'DL' or 'UL'.
+
+    Per TS 38.331 S6.3.2, the active dedicated BWP is the list entry whose
+    bwp-Id equals firstActiveDownlinkBWP-Id / firstActiveUplinkBWP-Id.  If
+    that IE is absent, bwp-Id defaults to 1.  ``list_header_line_index`` is
+    the line of ``downlinkBWP-ToAddModList`` / ``uplinkBWP-ToAddModList`` for
+    the chosen list (use this as ``scan_from`` for helpers that re-locate the
+    list by name).  ``bwp_entry_open_brace_line_index`` is the inner ``{``
+    that opens the matching BWP entry (for banner display).
+
+    Lists are tried from the last occurrence in the file toward the first
+    until one contains an entry whose bwp-Id matches the active id (handles
+    multi-cell captures where the last ``firstActive*BWP-Id`` belongs to a
+    later list than an earlier MCG-only list).
+
+    Returns (-1, -1, '') when the list is missing or no entry matches active id.
+    """
+    if direction == 'DL':
+        active_pat = re.compile(r"\bfirstActiveDownlinkBWP-Id\s+(\d+)")
+        list_pat = re.compile(r"\bdownlinkBWP-ToAddModList\b")
+    elif direction == 'UL':
+        active_pat = re.compile(r"\bfirstActiveUplinkBWP-Id\s+(\d+)")
+        list_pat = re.compile(r"\buplinkBWP-ToAddModList\b")
+    else:
+        return -1, -1, ''
+
+    active_id = 1
+    for i in range(rrclength):
+        m = active_pat.search(rows[i])
+        if m:
+            active_id = int(m.group(1))
+
+    list_indices = [i for i in range(rrclength) if list_pat.search(rows[i])]
+    for list_idx in reversed(list_indices):
+        entry_start = _walk_bwp_list_for_active_entry(list_idx, active_id)
+        if entry_start >= 0:
+            # Anchor parsers at the list header line (see docstring).
+            return list_idx, entry_start, str(active_id)
+    return -1, -1, ''
+
+
+def _walk_bwp_list_for_active_entry(list_idx, active_id):
+    """Return the start line index of the BWP list entry whose bwp-Id matches
+    active_id inside downlinkBWP-ToAddModList / uplinkBWP-ToAddModList
+    starting at list_idx, or -1 if not found."""
+    if list_idx < 0:
+        return -1
+
+    depth = 0
+    entry_start = -1
+    current_bwp_id = None
+    max_j = min(list_idx + 8000, rrclength)
+    j = list_idx
+    while j < max_j:
+        ln = rows[j]
+        before = depth
+        depth += ln.count('{') - ln.count('}')
+
+        if before == 1 and depth == 2:
+            entry_start = j
+            current_bwp_id = None
+        if before == 2 and depth == 1 and entry_start >= 0:
+            if current_bwp_id == active_id:
+                return entry_start
+            entry_start = -1
+            current_bwp_id = None
+
+        if depth >= 2 and entry_start >= 0 and current_bwp_id is None:
+            m = re.search(r"\bbwp-Id\s+(\d+)", ln)
+            if m:
+                current_bwp_id = int(m.group(1))
+
+        if depth == 0 and before > 0 and j > list_idx + 1:
+            break
+        j += 1
+
+    if entry_start >= 0 and current_bwp_id == active_id:
+        return entry_start
     return -1
 
 
@@ -777,6 +1274,218 @@ def writtenparser2(pattern, defaultvalue):
     return value
 
 
+# --- PDSCH-Config block parsing (DL dedicated BWP) --------------------------------
+_PDSCH_CFG_HDR = re.compile(r"\bpdsch-Config\s+(?:setup\s*)?:\s*")
+_RA_LINE = re.compile(
+    r"\bresourceAllocation(?:\s*:\s*|\s+)(dynamicSwitch|resourceAllocationType0|resourceAllocationType1)\b"
+)
+_RBG_SIZE_LINE = re.compile(r"\brbg-Size\s+config(\d+)\b", re.I)
+_SCELL_LIST_HDR = re.compile(r"\bsCellToAddModList\b")
+
+
+def parse_pdsch_ra_and_rbg_in_first_block(scan_from: int):
+    """Parse the first ``pdsch-Config`` at/after ``scan_from`` and return
+    (resourceAllocation token, rbg_config_asn_digit, header_line_index).
+
+    ``header_line_index`` is the matching ``pdsch-Config`` line, or ``-1`` when
+    no block is found / no opening brace is seen within the search window.
+
+    The token matches constants ``dynamicSwitch`` / ``resourceAllocationType0`` /
+    ``resourceAllocationType1`` for ``calculatefrdabitsdl``.
+
+    ``rbg_config_asn_digit`` is 1 for ``config1`` or 2 for ``config2`` (TS 38.214
+    Table 5.1.2.2.1-1), defaulting to 1 when ``rbg-Size`` is absent.
+    """
+    hdr = -1
+    lo = max(0, scan_from)
+    for i in range(lo, rrclength):
+        if _PDSCH_CFG_HDR.search(rows[i]):
+            hdr = i
+            break
+    if hdr < 0:
+        return None, 1, -1
+    ra = None
+    rbg = 1
+    depth = 0
+    started = False
+    for j in range(hdr, min(hdr + 500, rrclength)):
+        ln = rows[j]
+        if not started:
+            if "{" in ln:
+                started = True
+                depth = ln.count("{") - ln.count("}")
+            if ra is None:
+                m = _RA_LINE.search(ln)
+                if m:
+                    ra = m.group(1)
+            m2 = _RBG_SIZE_LINE.search(ln)
+            if m2:
+                v = int(m2.group(1))
+                if v in (1, 2):
+                    rbg = v
+            if not started:
+                continue
+        else:
+            if ra is None:
+                m = _RA_LINE.search(ln)
+                if m:
+                    ra = m.group(1)
+            m2 = _RBG_SIZE_LINE.search(ln)
+            if m2:
+                v = int(m2.group(1))
+                if v in (1, 2):
+                    rbg = v
+            before = depth
+            depth += ln.count("{") - ln.count("}")
+            if before > 0 and depth <= 0:
+                break
+    if not started:
+        return None, 1, -1
+    return ra, rbg, hdr
+
+
+def _find_last_downlink_bwp_to_add_mod_list_header(scan_lo: int, scan_hi: int) -> int:
+    last = -1
+    for i in range(max(0, scan_lo), min(scan_hi, rrclength)):
+        if re.search(r"\bdownlinkBWP-ToAddModList\b", rows[i]):
+            last = i
+    return last
+
+
+def _iter_all_dl_bwp_list_entries(list_idx: int, scan_hi: int):
+    """Yield (entry_start_line, entry_end_exclusive) for each BWP entry in the
+    ``downlinkBWP-ToAddModList`` opened at ``list_idx`` (brace-depth logic matches
+    ``_walk_bwp_list_for_active_entry``)."""
+    if list_idx < 0:
+        return
+    depth = 0
+    entry_start = -1
+    max_j = min(list_idx + 8000, scan_hi, rrclength)
+    j = list_idx
+    while j < max_j:
+        ln = rows[j]
+        before = depth
+        depth += ln.count("{") - ln.count("}")
+        if before == 1 and depth == 2:
+            entry_start = j
+        if before == 2 and depth == 1 and entry_start >= 0:
+            yield entry_start, j + 1
+            entry_start = -1
+        if depth == 0 and before > 0 and j > list_idx + 1:
+            break
+        j += 1
+
+
+def _first_location_and_bandwidth_in_range(lo: int, hi: int):
+    pat = re.compile(r"\blocationAndBandwidth\s+(\d+)\b")
+    for i in range(lo, hi):
+        m = pat.search(rows[i])
+        if m:
+            return int(m.group(1))
+    return None
+
+
+def _lab_backscan_before_pdsch(pdsch_line: int, scan_lo: int):
+    """Last ``locationAndBandwidth`` value found scanning upward from a
+    ``pdsch-Config`` line (stops at ``uplinkBWP-ToAddModList`` to avoid UL LAB)."""
+    pat = re.compile(r"\blocationAndBandwidth\s+(\d+)\b")
+    last = None
+    lo = max(0, scan_lo)
+    for i in range(pdsch_line - 1, lo - 1, -1):
+        if i < 0:
+            break
+        if re.search(r"\buplinkBWP-ToAddModList\b", rows[i]):
+            break
+        m = pat.search(rows[i])
+        if m:
+            last = int(m.group(1))
+    return last
+
+
+def collect_max_fdr_bits_dci11_window(dai_lo, dai_hi, fallback_lab):
+    """Compute maximum DCI 1_1 FDRA bit-width among DL ``pdsch-Config`` blocks in a window.
+
+    Sources:
+      (1) Every ``bwp-Dedicated`` entry under the **last** ``downlinkBWP-ToAddModList``
+          in ``[dai_lo, dai_hi)`` that contains a ``pdsch-Config``;
+      (2) Any other ``pdsch-Config`` in the window (e.g. SCell configs), using backward
+          scan for ``locationAndBandwidth`` or ``fallback_lab`` from the active DL BWP.
+
+    Returns ``(max_bits, note_string, detail_rows)`` where ``note_string`` is non-empty
+    only when ``max_bits`` exceeds the **active** BWP FDRA width passed by the caller
+    for display (caller compares).  ``detail_rows`` is a list of
+    ``(bits, bwp_id_or_None, ra_str, n_rb, line_1based)``.
+    """
+    lo = max(0, dai_lo)
+    hi = min(dai_hi, rrclength)
+    rows_out = []
+    seen_pdsch = set()
+
+    def _add_candidate(pstart, lab_guess, bwp_id_guess):
+        if pstart in seen_pdsch:
+            return
+        if lab_guess is None or lab_guess == 0:
+            if fallback_lab and int(fallback_lab) > 0:
+                lab_guess = int(fallback_lab)
+            else:
+                return
+        ra, rbg_asn, ph = parse_pdsch_ra_and_rbg_in_first_block(pstart)
+        if ph < 0:
+            return
+        ra_use = ra if ra is not None else resourceAllocationType0
+        gw = getbwprbandstartrb(lab_guess)
+        if gw is None:
+            return
+        nrb, srb = gw
+        nom = getnominalresourceblockgroup(rbg_asn, nrb)
+        if nom is None or nom <= 0:
+            nom = 4
+        bits = calculatefrdabitsdl(ra_use, nrb, srb, nom)
+        if bits is None:
+            return
+        seen_pdsch.add(pstart)
+        rows_out.append((bits, bwp_id_guess, str(ra_use), nrb, pstart + 1))
+
+    hdr = _find_last_downlink_bwp_to_add_mod_list_header(lo, hi)
+    if hdr >= 0:
+        for estart, eend in _iter_all_dl_bwp_list_entries(hdr, hi):
+            lab = _first_location_and_bandwidth_in_range(estart, eend)
+            pstart = -1
+            for i in range(estart, eend):
+                if _PDSCH_CFG_HDR.search(rows[i]):
+                    pstart = i
+                    break
+            if pstart < 0:
+                continue
+            bwp_id = None
+            for i in range(estart, min(estart + 40, eend)):
+                m = re.search(r"\bbwp-Id\s+(\d+)", rows[i])
+                if m:
+                    bwp_id = m.group(1)
+                    break
+            _add_candidate(pstart, lab, bwp_id)
+
+    for i in range(lo, hi):
+        if not _PDSCH_CFG_HDR.search(rows[i]):
+            continue
+        if i in seen_pdsch:
+            continue
+        lab2 = _lab_backscan_before_pdsch(i, lo)
+        _add_candidate(i, lab2, None)
+
+    if not rows_out:
+        return 0, "", []
+    max_bits = max(r[0] for r in rows_out)
+    arg = max(rows_out, key=lambda x: x[0])
+    note = (
+        f"Max FDRA in cell-group window = {max_bits} (list@{hdr + 1 if hdr >= 0 else '?'}, "
+        f"bwp-Id={arg[1]}, RA={arg[2]}, N_RB={arg[3]}, pdsch-Config line {arg[4]}). "
+        f"TS 38.212: DCI 1_1 payload may be zero-padded to the largest monitored "
+        f"format 1_1 (e.g. multiple CORESET/search spaces or PCell/SCell alignment)."
+    )
+    return max_bits, note, rows_out
+
+
 def time_domain_allocation_list_count(header_idx: int):
     """Count PDSCH/PUSCH time-domain allocation entries (QCAT digit line or RRC brace list)."""
     if header_idx < 0 or header_idx >= rrclength:
@@ -848,6 +1557,61 @@ def doublenumericalparser(pattern1, pattern2, pattern3, defaultvalue, scan_from=
     return defaultvalue
 
 
+def parse_pusch_tda_r16_dci01_count(scan_from=0):
+    """Count entries in pusch-TimeDomainAllocationListDCI-0-1-r16 starting
+    from `scan_from`.  Returns int or None.
+
+    Per TS 38.214 S6.1.2.1.1, when this R16 IE is configured (setup) it
+    overrides the legacy pusch-TimeDomainAllocationList for DCI 0_1 only;
+    DCI 0_0 still uses the legacy list.  Returns None when the IE is absent
+    from the scoped slice or when it is set to `release : NULL`.
+
+    Counting is delegated to time_domain_allocation_list_count() which
+    handles both the QCAT one-liner form and the brace-list form, and which
+    matches `startSymbolAndLength-r16` (the R16 entries) via substring.
+    """
+    s = max(0, scan_from)
+    anchor_pat = re.compile(r"\bpusch-TimeDomainAllocationListDCI-0-1-r16\b")
+    release_pat = re.compile(r"\brelease\s*:\s*NULL\b")
+    while s < rrclength:
+        ln = rows[s]
+        if anchor_pat.search(ln):
+            if release_pat.search(ln):
+                s += 1
+                continue
+            cnt = time_domain_allocation_list_count(s)
+            if cnt is not None:
+                return cnt
+        s += 1
+    return None
+
+
+def parse_pdsch_tda_r16_count(scan_from=0):
+    """Count entries in pdsch-TimeDomainAllocationList-r16 starting from
+    `scan_from`.  Returns int or None.
+
+    Per TS 38.214 S5.1.2.1.1, when this R16 IE is configured (setup) it
+    overrides the legacy pdsch-TimeDomainAllocationList for DCI 1_1.  DCI
+    1_0 fallback TDA is fixed at 4 bits (TS 38.212 S7.3.1.2.1) so the
+    override only affects the DCI 1_1 per-field table here.  Returns None
+    when the IE is absent or set to `release : NULL`.
+    """
+    s = max(0, scan_from)
+    anchor_pat = re.compile(r"\bpdsch-TimeDomainAllocationList-r16\b")
+    release_pat = re.compile(r"\brelease\s*:\s*NULL\b")
+    while s < rrclength:
+        ln = rows[s]
+        if anchor_pat.search(ln):
+            if release_pat.search(ln):
+                s += 1
+                continue
+            cnt = time_domain_allocation_list_count(s)
+            if cnt is not None:
+                return cnt
+        s += 1
+    return None
+
+
 # BITWIDTH CALCULATIONS:
 # UL/SUL indication size, DCI 0-1
 def ulsulsize(defaultvalue):
@@ -862,6 +1626,8 @@ def ulsulsize(defaultvalue):
 
 # Bandwidth part indicator size DCI 0-1
 def bwpindsize(defaultvalue):
+    if defaultvalue is None:
+        defaultvalue = 0
     defaultvalue = int(defaultvalue)
     if defaultvalue <= 3:
         value = math.ceil(math.log(defaultvalue+1, 2))
@@ -978,17 +1744,25 @@ def calculatefrdabitsdl(dlresourceallocationvalue, nrb, startrb, nominalrbg):
         return None
 
 
-# Calculate size of time domain allocation field DCI 0-1
+# Calculate size of time domain allocation field DCI 0-1 / 1-1
 def tdrabits(timedomainallocationlistvalue):
-    timedomainallocationlistvalue = int(timedomainallocationlistvalue)
+    """Bit-width of the Time-domain resource assignment field.
+
+    Per TS 38.214 / 38.212:
+      - When pdsch-TimeDomainAllocationList / pusch-TimeDomainAllocationList
+        is configured, the bit-width is ceil(log2(N)) where N is the entry
+        count.
+      - When the list is absent, the UE uses the default tables (16 entries),
+        giving 4 bits (log2(16) = 4).
+
+    Robust against `None` (delta Reconfig with no list, missing IE, etc.).
+    """
     if timedomainallocationlistvalue is None:
-        value = math.log(16, 2)
-        value = int(value)
-        return value
-    else:
-        value = math.ceil(math.log(timedomainallocationlistvalue, 2))
-        value = int(value)
-        return value
+        return 4
+    n = int(timedomainallocationlistvalue)
+    if n <= 1:
+        return 0
+    return int(math.ceil(math.log2(n)))
 
 
 # Calculate frequency hopping DCI 0-1
@@ -1224,7 +1998,15 @@ def DLassignment(servingcellvalue, pdschharqackcodebookvalue):
 
 # Calculate PDSCH-to-HARQ feedback timing indicator field length DCI 1-1
 def pdschtoharqtimingind(dldatatoulackvalue):
-    value = math.ceil(math.log(dldatatoulackvalue, 2))
+    if dldatatoulackvalue is None:
+        return 0
+    try:
+        n = int(dldatatoulackvalue)
+    except (TypeError, ValueError):
+        return 0
+    if n <= 1:
+        return 0
+    value = math.ceil(math.log(n, 2))
     value = int(value)
     return value
 
@@ -1310,6 +2092,179 @@ def checkvalue(value, name):
         print(name, value)
 
 
+def _write_wireshark_config(
+    rrc_filepath,
+    cell_label,
+    output_dir,
+    # DCI 0_1 variable fields
+    ulsulfieldvalue, ulbwpfieldvalue, frdabitsul, tdrabitsul, ulhopping,
+    dlassignment, srsindicatorfieldvalue, precodingnumberoflayers,
+    antennaports01fieldvalue, srsrequestfieldvalue, reporttriggersizevalue,
+    maxcodeblockgroupspertransportblockvalue01, prtsdmrsfieldvalue,
+    betaoffsetfieldvalue, dmrssequencefieldvalue, totallength01,
+    # DCI 1_1 variable fields
+    dlbwpfieldvalue, frdabitsdl, tdrabitsdl, vrbprbfieldvalue,
+    prbbundlefieldvalue, ratematchingindicatorsizefieldvalue,
+    zpcsirstriggerfieldvalue, DLassignmentfieldvalue,
+    pdschtoharqtimingindfieldvalue, antennaportsvaluefieldvalue,
+    transmissionconfigurationfieldvalue, srsrequestfieldvalue_dl,
+    cbgtransmissioninformationfieldvalue11, codeblockflushindicatorfieldvalue,
+    totallength11,
+    pdcch_monitoring_adapt_bits,
+):
+    """Write dci_0_1_fields_config and dci_1_1_fields_config (Wireshark CSV
+    format) next to the input RRC file, using the exact per-field bit-widths
+    computed by main().
+
+    Column ordering matches the existing reference files in this folder:
+      dci_0_1_fields_config  - 25 width columns after TRUE,Name,Total,FALSE,""
+      dci_1_1_fields_config  - 28 width columns after TRUE,Name,Total,FALSE,""
+
+    The cell_label (e.g. 'Cell_871_0') is derived from the Physical Cell ID
+    extracted from the RRC file header.
+    """
+    import os
+
+    def _cv(v):
+        return str(v) if v is not None else "0"
+
+    def _row(name, total, widths):
+        fields = ['"TRUE"', f'"{name}"', f'"{total}"', '"FALSE"', '""']
+        fields += [f'"{w}"' for w in widths]
+        return ",".join(fields)
+
+    # --- DCI 0_1 (25 width columns) ---
+    # Col  0: Identifier (fixed 1)
+    # Col  1: Carrier indicator (fixed 0)
+    # Col  2: UL/SUL indicator
+    # Col  3: Bandwidth part indicator
+    # Col  4: Frequency domain resource assignment
+    # Col  5: Time domain resource assignment
+    # Col  6: Frequency hopping flag
+    # Col  7: MCS (fixed 5)
+    # Col  8: New data indicator (fixed 1)
+    # Col  9: Redundancy version (fixed 2)
+    # Col 10: HARQ process number (fixed 4)
+    # Col 11: 1st downlink assignment index (DAI)
+    # Col 12: 2nd downlink assignment index (fixed 0)
+    # Col 13: TPC for PUSCH (fixed 2)
+    # Col 14: SRS resource indicator
+    # Col 15: Precoding information and number of layers
+    # Col 16: Antenna port(s)
+    # Col 17: SRS request
+    # Col 18: CSI request
+    # Col 19: CBG transmission information
+    # Col 20: PTRS-DMRS association
+    # Col 21: Beta offset indicator
+    # Col 22: DMRS sequence initialization
+    # Col 23: UL-SCH indicator (fixed 1)
+    # Col 24: PDCCH monitoring adaptation indicator (0 or 1 bit)
+    # NOTE: Transform precoder indication (Rel-18) is shown in the display table
+    #       but omitted here — Wireshark does not yet support this field.
+    w01 = [
+        "1",
+        "0",
+        _cv(ulsulfieldvalue),
+        _cv(ulbwpfieldvalue),
+        _cv(frdabitsul),
+        _cv(tdrabitsul),
+        _cv(ulhopping),
+        "5",
+        "1",
+        "2",
+        "4",
+        _cv(dlassignment),
+        "0",
+        "2",
+        _cv(srsindicatorfieldvalue),
+        _cv(precodingnumberoflayers),
+        _cv(antennaports01fieldvalue),
+        _cv(srsrequestfieldvalue),
+        _cv(reporttriggersizevalue),
+        _cv(maxcodeblockgroupspertransportblockvalue01),
+        _cv(prtsdmrsfieldvalue),
+        _cv(betaoffsetfieldvalue),
+        _cv(dmrssequencefieldvalue),
+        "1",
+        _cv(pdcch_monitoring_adapt_bits),
+    ]
+    dci01_line = _row(cell_label, totallength01, w01)
+
+    # --- DCI 1_1 (28 width columns) ---
+    # Col  0: Identifier (fixed 1)
+    # Col  1: Carrier indicator (fixed 0)
+    # Col  2: Bandwidth part indicator
+    # Col  3: Frequency domain resource assignment
+    # Col  4: Time domain resource assignment
+    # Col  5: VRB-to-PRB mapping
+    # Col  6: PRB bundling size indicator
+    # Col  7: Rate matching indicator
+    # Col  8: ZP CSI-RS trigger
+    # Col  9: MCS TB1 (fixed 5)
+    # Col 10: NDI TB1 (fixed 1)
+    # Col 11: RV TB1 (fixed 2)
+    # Col 12: TB2 disabled indicator (FALSE)
+    # Col 13: MCS TB2 placeholder (5-bit field; excluded from DCI size when FALSE)
+    # Col 14: NDI TB2 placeholder (1-bit; excluded when FALSE)
+    # Col 15: RV TB2 placeholder  (2-bit; excluded when FALSE)
+    # Col 16: HARQ process number (fixed 4)
+    # Col 17: Downlink assignment index
+    # Col 18: TPC for PUCCH (fixed 2)
+    # Col 19: PUCCH resource indicator (fixed 3)
+    # Col 20: PDSCH-to-HARQ feedback timing indicator
+    # Col 21: Antenna port(s)
+    # Col 22: Transmission configuration indication
+    # Col 23: SRS request
+    # Col 24: CBG transmission information
+    # Col 25: CBG flushing out information
+    # Col 26: DMRS sequence initialization (fixed 1)
+    # Col 27: PDCCH monitoring adaptation indicator (0 or 1 bit)
+    w11 = [
+        "1",
+        "0",
+        _cv(dlbwpfieldvalue),
+        _cv(frdabitsdl),
+        _cv(tdrabitsdl),
+        _cv(vrbprbfieldvalue),
+        _cv(prbbundlefieldvalue),
+        _cv(ratematchingindicatorsizefieldvalue),
+        _cv(zpcsirstriggerfieldvalue),
+        "5",
+        "1",
+        "2",
+        "FALSE",
+        "5",   # MCS TB2 placeholder (Wireshark col present even when TB2 disabled)
+        "1",   # NDI TB2 placeholder
+        "2",   # RV TB2 placeholder
+        "4",   # HARQ process number (4 bits, fixed)
+        _cv(DLassignmentfieldvalue),
+        "2",
+        "3",
+        _cv(pdschtoharqtimingindfieldvalue),
+        _cv(antennaportsvaluefieldvalue),
+        _cv(transmissionconfigurationfieldvalue),
+        _cv(srsrequestfieldvalue_dl),
+        _cv(cbgtransmissioninformationfieldvalue11),
+        _cv(codeblockflushindicatorfieldvalue),
+        "1",
+        _cv(pdcch_monitoring_adapt_bits),
+    ]
+    dci11_line = _row(cell_label, totallength11, w11)
+
+    out_dir = (os.path.abspath(output_dir) if output_dir
+               else os.path.dirname(os.path.abspath(rrc_filepath)))
+    os.makedirs(out_dir, exist_ok=True)
+    path01 = os.path.join(out_dir, "dci_0_1_fields_config")
+    path11 = os.path.join(out_dir, "dci_1_1_fields_config")
+
+    with open(path01, "w", encoding="utf-8") as f_out:
+        f_out.write(dci01_line + "\n")
+    with open(path11, "w", encoding="utf-8") as f_out:
+        f_out.write(dci11_line + "\n")
+
+    return path01, path11
+
+
 # Check if value is None
 def checkvalue2(value):
     if value is None:
@@ -1320,52 +2275,207 @@ def checkvalue2(value):
         return value
 
 
+def _interactive_line_input(prompt):
+    """Read one line from a real interactive console; return '' otherwise.
+
+    PyInstaller --noconsole and GUI subprocesses often have sys.stdin that
+    is non-None but not a TTY, or that raises EOFError on input() — never call
+    input() in those cases.
+    """
+    stdin = sys.stdin
+    if stdin is None:
+        return ""
+    try:
+        if not stdin.isatty():
+            return ""
+    except (AttributeError, ValueError, OSError):
+        return ""
+    try:
+        return input(prompt).strip()
+    except EOFError:
+        return ""
+
+
 def main():
+    _abort_if_saved_output_instead_of_rrc()
+
     nrdc_scg_start = _find_nrdc_nrscg_start_index()
     _nrdc_scg = (nrdc_scg_start >= 0)
     _reconfig_start, _both_msgs = _find_reconfig_start_index()
-    # For DL FDRA parameters: prefer Reconfiguration over Setup when both are present.
-    # NR-DC SCG scope takes priority; otherwise use reconfig anchor when both messages present.
-    _dl_scope = nrdc_scg_start if _nrdc_scg else (_reconfig_start if _both_msgs else 0)
 
+    # Structural anchors per TS 38.331 S6.3.2 / TS 38.213 S12: DCI 0_1 / 1_1
+    # sizes are derived from the *active dedicated* DL/UL BWP entry whose
+    # bwp-Id matches firstActiveDownlinkBWP-Id / firstActiveUplinkBWP-Id in
+    # the latest *BWP-ToAddModList.  When that cannot be resolved, fall back
+    # to the legacy temporal anchor (first rrcReconfiguration line when both
+    # Setup and Reconfig are present).
+    _dl_dedicated_list, _dl_dedicated_entry, _dl_anchor_id = (
+        _resolve_active_dedicated_bwp_block_start('DL'))
+    _ul_dedicated_list, _ul_dedicated_entry, _ul_anchor_id = (
+        _resolve_active_dedicated_bwp_block_start('UL'))
+
+    if _nrdc_scg:
+        _dl_scope = nrdc_scg_start
+        _dl_scope_label = "NR-DC SCG (mrdc-SecondaryCellGroup nr-SCG)"
+    elif _dl_dedicated_list >= 0:
+        _dl_scope = _dl_dedicated_list
+        _dl_scope_label = f"active dedicated DL BWP (bwp-Id={_dl_anchor_id})"
+    elif _both_msgs:
+        _dl_scope = _reconfig_start
+        _dl_scope_label = (
+            "rrcReconfiguration (temporal fall-back; structural BWP resolution failed)")
+    else:
+        _dl_scope = 0
+        _dl_scope_label = "whole file"
+
+    if _nrdc_scg:
+        _ul_scope = nrdc_scg_start
+        _ul_scope_label = "NR-DC SCG (mrdc-SecondaryCellGroup nr-SCG)"
+    elif _ul_dedicated_list >= 0:
+        _ul_scope = _ul_dedicated_list
+        _ul_scope_label = f"active dedicated UL BWP (bwp-Id={_ul_anchor_id})"
+    elif _both_msgs:
+        _ul_scope = _reconfig_start
+        _ul_scope_label = (
+            "rrcReconfiguration (temporal fall-back; structural BWP resolution failed)")
+    else:
+        _ul_scope = 0
+        _ul_scope_label = "whole file"
+
+    def _scope_src_note(scope_label):
+        if scope_label.startswith("active dedicated"):
+            direction = "UL" if "UL BWP" in scope_label else "DL"
+            return f" [from active dedicated {direction} BWP]"
+        if scope_label.startswith("NR-DC"):
+            return " [from NR-DC SCG (mrdc-SecondaryCellGroup nr-SCG)]"
+        if "temporal fall-back" in scope_label:
+            return " [from rrcReconfiguration (temporal fall-back)]"
+        return ""
+
+    _dl_src_note = _scope_src_note(_dl_scope_label)
+    _ul_src_note = _scope_src_note(_ul_scope_label)
+
+    # RRC slice for physicalCellGroupConfig + sCellToAddModList when inferring DAI
+    # bit width (4 bits when ``sCellToAddModList`` appears in this window).  NR-DC SCG
+    # runs use the SCG branch only; MN-terminated captures stop before the first nr-SCG.
+    if _nrdc_scg:
+        _dai_lo, _dai_hi = nrdc_scg_start, rrclength
+    else:
+        _nr_demarc = _find_nrdc_nrscg_start_index()
+        _dai_lo, _dai_hi = 0, (_nr_demarc if _nr_demarc >= 0 else rrclength)
+
+    # FDRA-related parameters: scan from the structural / SCG anchor first, then
+    # fall back to the whole file when the anchor misses (delta Reconfig that
+    # does not re-include the IE).  This is the consistent treatment for
+    # locationAndBandwidth, subcarrierSpacing, resourceAllocation and the
+    # time-domain allocation lists.
     dllocationandbandwidthvalue = numericalparser1(BWPDownlink, locationAndBandwidth, 0, scan_from=_dl_scope)
+    if dllocationandbandwidthvalue == 0 and _dl_scope > 0:
+        dllocationandbandwidthvalue = numericalparser1(BWPDownlink, locationAndBandwidth, 0)
     if dllocationandbandwidthvalue == 0:
-        raw = input(
+        raw = _interactive_line_input(
             "DL locationAndBandwidth not found in file (needed for frequency-domain bit-width).\n"
             "Enter value (e.g. 17875 for FR2 n258 100MHz), or press Enter to keep 0: "
-        ).strip()
+        )
         if raw.isdigit():
             dllocationandbandwidthvalue = int(raw)
+        elif not raw:
+            print("WARNING: DL locationAndBandwidth not found in file — FDRA bit-width will be 0.")
 
-    _ul_scope = _reconfig_start if (_both_msgs and not _nrdc_scg) else 0
     ullocationandbandwidthvalue = numericalparser1(BWPUplink, locationAndBandwidth, 0, scan_from=_ul_scope)
+    if ullocationandbandwidthvalue == 0 and _ul_scope > 0:
+        ullocationandbandwidthvalue = numericalparser1(BWPUplink, locationAndBandwidth, 0)
     if ullocationandbandwidthvalue == 0:
-        raw = input(
+        raw = _interactive_line_input(
             "UL locationAndBandwidth not found in file.\n"
             "Enter value (or press Enter to keep 0): "
-        ).strip()
+        )
         if raw.isdigit():
             ullocationandbandwidthvalue = int(raw)
+        elif not raw:
+            print("WARNING: UL locationAndBandwidth not found in file — FDRA bit-width will be 0.")
+
     subcarrierspacingdlvalue = numericalparser1(BWPDownlink, subcarrierSpacing, 0, scan_from=_dl_scope)
+    if subcarrierspacingdlvalue == 0 and _dl_scope > 0:
+        subcarrierspacingdlvalue = numericalparser1(BWPDownlink, subcarrierSpacing, 0)
     subcarrierspacingulvalue = numericalparser1(BWPUplink, subcarrierSpacing, 0, scan_from=_ul_scope)
-    pdschrbgsizevalue = doubleindexparser(pdschConfig, puschConfigC, Rbgsize, scan_from=_dl_scope)
-    puschrbgsizevalue = numericalparser1(puschConfig, Rbgsize, 1, scan_from=_ul_scope)
-    dlresourceallocationvalue = writtenparser1(pdschConfig, dynamicSwitch, resourceAllocationType0, resourceAllocationType1, 'tyhja', None, scan_from=_dl_scope)
-    ulresourceallocationvalue = writtenparser1(puschConfig, dynamicSwitch, resourceAllocationType0, resourceAllocationType1, 'tyhja', None, scan_from=_ul_scope)
-    pdschtimedomainallocationlistvalue = doublenumericalparser(
-        pdschConfig, pdschTimeAllocationList1, pdschTimeAllocationList, None,
-        scan_from=_dl_scope)
-    if _nrdc_scg:
-        puschtimedomainallocationlistvalue = doublenumericalparser(
-            puschConfig, puschTimeAllocationList1, puschTimeAllocationList,
-            None, scan_from=nrdc_scg_start)
-    elif _both_msgs:
-        puschtimedomainallocationlistvalue = doublenumericalparser(
-            puschConfig, puschTimeAllocationList1, puschTimeAllocationList,
-            None, scan_from=_reconfig_start)
+    if subcarrierspacingulvalue == 0 and _ul_scope > 0:
+        subcarrierspacingulvalue = numericalparser1(BWPUplink, subcarrierSpacing, 0)
+
+    _ra_blk, _rbg_blk, _pdsch_hdr = parse_pdsch_ra_and_rbg_in_first_block(_dl_scope)
+    if _pdsch_hdr >= 0:
+        pdschrbgsizevalue = _rbg_blk
     else:
-        puschtimedomainallocationlistvalue = doublenumericalparser(
-            puschConfig, puschTimeAllocationList1, puschTimeAllocationList, None)
+        pdschrbgsizevalue = doubleindexparser(
+            pdschConfig, puschConfigC, Rbgsize, scan_from=_dl_scope)
+    if _ra_blk is not None:
+        dlresourceallocationvalue = _ra_blk
+    else:
+        dlresourceallocationvalue = writtenparser1(
+            pdschConfig, dynamicSwitch, resourceAllocationType0, resourceAllocationType1,
+            'tyhja', None, scan_from=_dl_scope)
+        if dlresourceallocationvalue is None and _dl_scope > 0:
+            dlresourceallocationvalue = writtenparser1(
+                pdschConfig, dynamicSwitch, resourceAllocationType0, resourceAllocationType1,
+                'tyhja', None)
+    puschrbgsizevalue = numericalparser1(puschConfig, Rbgsize, 1, scan_from=_ul_scope)
+
+    ulresourceallocationvalue = writtenparser1(puschConfig, dynamicSwitch, resourceAllocationType0, resourceAllocationType1, 'tyhja', None, scan_from=_ul_scope)
+    if ulresourceallocationvalue is None and _ul_scope > 0:
+        ulresourceallocationvalue = writtenparser1(puschConfig, dynamicSwitch, resourceAllocationType0, resourceAllocationType1, 'tyhja', None)
+    # PDSCH TDA list - per TS 38.214 S5.1.2.1.1, the R16 override
+    # `pdsch-TimeDomainAllocationList-r16` (when configured) supersedes the
+    # legacy `pdsch-TimeDomainAllocationList` for DCI 1_1.  We try the
+    # override first with the same scoping as the legacy lookup, then fall
+    # through to the legacy list with its existing Reconfig-then-Setup
+    # fall-back.
+    _pdsch_r16_count = parse_pdsch_tda_r16_count(scan_from=_dl_scope)
+    if _pdsch_r16_count is None and _dl_scope > 0:
+        _pdsch_r16_count = parse_pdsch_tda_r16_count(scan_from=0)
+    if _pdsch_r16_count is not None:
+        pdschtimedomainallocationlistvalue = _pdsch_r16_count
+        _tdr_dl_src_label = "pdsch-TimeDomainAllocationList-r16 (R16 override)"
+    else:
+        pdschtimedomainallocationlistvalue = doublenumericalparser(
+            pdschConfig, pdschTimeAllocationList1, pdschTimeAllocationList, None,
+            scan_from=_dl_scope)
+        if pdschtimedomainallocationlistvalue is None and _dl_scope > 0:
+            pdschtimedomainallocationlistvalue = doublenumericalparser(
+                pdschConfig, pdschTimeAllocationList1, pdschTimeAllocationList, None)
+        _tdr_dl_src_label = "pdsch-TimeDomainAllocationList"
+
+    # PUSCH TDA list - per TS 38.214 S6.1.2.1.1, the R16 override
+    # `pusch-TimeDomainAllocationListDCI-0-1-r16` (when configured) takes
+    # precedence over the legacy `pusch-TimeDomainAllocationList` for DCI
+    # 0_1 only (DCI 0_0 still uses the legacy list, but its TDA bit-width
+    # is fixed at 4 bits per TS 38.212 S7.3.1.1.1 anyway).  Same scoping
+    # rules as the legacy path: NR-DC SCG > Reconfig-scoped > whole file.
+    if _nrdc_scg:
+        _pusch_r16_count = parse_pusch_tda_r16_dci01_count(scan_from=nrdc_scg_start)
+    else:
+        _pusch_r16_count = parse_pusch_tda_r16_dci01_count(scan_from=_ul_scope)
+        if _pusch_r16_count is None and _ul_scope > 0:
+            _pusch_r16_count = parse_pusch_tda_r16_dci01_count(scan_from=0)
+
+    if _pusch_r16_count is not None:
+        puschtimedomainallocationlistvalue = _pusch_r16_count
+        _tdr_ul_src_label = "pusch-TimeDomainAllocationListDCI-0-1-r16 (R16 override)"
+    else:
+        if _nrdc_scg:
+            puschtimedomainallocationlistvalue = doublenumericalparser(
+                puschConfig, puschTimeAllocationList1, puschTimeAllocationList,
+                None, scan_from=nrdc_scg_start)
+        else:
+            puschtimedomainallocationlistvalue = doublenumericalparser(
+                puschConfig, puschTimeAllocationList1, puschTimeAllocationList,
+                None, scan_from=_ul_scope)
+            # Do NOT fall back to a whole-file scan when _ul_scope is resolved:
+            # if the active dedicated pusch-Config (from the latest rrcReconfiguration)
+            # does not contain a pusch-TimeDomainAllocationList, Table 6.1.2.1.1-1A
+            # directs the UE to use the Default A table (16 entries → 4 bits), not
+            # an older config's list that was replaced by the new Setup.  A None result
+            # from the scoped scan is the correct signal to fall to Default A.
+        _tdr_ul_src_label = "pusch-TimeDomainAllocationList"
     transformprecodervalue = writtenparser1(puschConfig, transformprecoderdisabled, transformprecoderenabled, 'tyhja', 'tyhja', None)
     antennaportsvalue, _nrofsrs_from_reconfig = parse_nrofsrsports_prefer_reconfig()
     maxrankvalue, _maxrank_from_reconfig = parse_maxrank_prefer_reconfig()
@@ -1380,12 +2490,17 @@ def main():
     frequencyhoppingoffsetlistsvalue = numericalparser2(frequencyHoppingOffsetLists, None)
     srsresourcesettoaddmodlistvalue = numericalparser2(srsResourceSetToAddModList, None)
     usageofsrsresourcesetvalue = writtenparser1(srsconfig, codebook1, noncodebook1, antennaswitching, beammanagement, None)
-    pdschharqackcodebookvalue = writtenparser1(physicalcellgroupconfig, semistatic, dynamic, 'tyhja', 'tyhja', dynamic)
+    pdschharqackcodebookvalue = writtenparser1(
+        physicalcellgroupconfig, semistatic, dynamic, 'tyhja', 'tyhja', dynamic,
+        scan_from=_dai_lo)
     prbbundlingvalue = writtenparser1(prbbundlingtype, dynamic, static, 'tyhja', 'tyhja', None)
     ratematchpatterngroup1value = writtenparser2(ratematch1, None)
     ratematchpatterngroup2value = writtenparser2(ratematch2, None)
     zpcsirstriggervalue = numericalparser2(zpcsiresresourcesetstoaddmodlist, 0)
-    servingcellvalue = writtenparser2(scelltoaddmodlist, 1)
+    _dai_scell_to_add_mod = any(
+        _SCELL_LIST_HDR.search(rows[i])
+        for i in range(_dai_lo, min(_dai_hi, rrclength)))
+    servingcellvalue = scelltoaddmodlist if _dai_scell_to_add_mod else 1
     dldatatoulackvalue = None
     for _i in range(rrclength):
         if re.search(r"\bdl-DataToUL-ACK\b", rows[_i]):
@@ -1438,17 +2553,89 @@ def main():
     ratematchingindicatorsizefieldvalue = ratematchingindicatorsizefield(ratematchpatterngroup1value, ratematchpatterngroup2value)
     betaoffsetfieldvalue = betaoffsetfield(betaoffsets_configured)
 
+    # Rel-16/17 PDCCH monitoring adaptation indicator (TS 38.212 §7.3.1.1.2 / §7.3.1.2.2)
+    # 1 bit when search-space group switching OR availability indication is configured:
+    #   Rel-16: availabilityIndicator-r16 or searchSpaceSwitchTrigger-r16 in SearchSpace
+    #   Rel-17: searchSpaceGroupIdList-r17 or searchSpaceSwitchConfig-r17 in PDCCH-Config
+    _pdcch_mon_adapt = any(
+        re.search(
+            r"searchSpaceSwitchConfig.r17|searchSpaceGroupIdList.r17"
+            r"|availabilityIndicator.r16|searchSpaceSwitchTrigger.r16",
+            rows[i])
+        for i in range(rrclength))
+    pdcch_monitoring_adapt_bits = 1 if _pdcch_mon_adapt else 0
+    if pdcch_monitoring_adapt_bits:
+        _pdcch_mon_c = (
+            "searchSpaceSwitchConfig-r17 / searchSpaceGroupIdList-r17 / "
+            "availabilityIndicator-r16 / searchSpaceSwitchTrigger-r16 "
+            "configured -> 1 bit")
+    else:
+        _pdcch_mon_c = (
+            "searchSpaceSwitchConfig-r17 / searchSpaceGroupIdList-r17 / "
+            "availabilityIndicator-r16 / searchSpaceSwitchTrigger-r16 "
+            "not configured -> 0 bits")
+
+    # Rel-18 Transform precoder indication field (TS 38.212 §7.3.1.1.2)
+    # 1 bit added to DCI format 0_1 when dynamicTransformPrecoderFieldPresenceDCI-0-1-r18
+    # is set to 'enabled' in the active UL BWP's pusch-Config.
+    # When present, the 1-bit field indicates whether transform precoding (DFT-s-OFDM)
+    # is applied for the scheduled PUSCH transmission.
+    _ul_scan_start = _ul_scope if _ul_scope >= 0 else 0
+    _transform_prec_indicator = any(
+        re.search(
+            r"\bdynamicTransformPrecoderFieldPresenceDCI-0-1-r18\s+enabled\b",
+            rows[i])
+        for i in range(_ul_scan_start, rrclength))
+    transform_prec_indicator_bits = 1 if _transform_prec_indicator else 0
+    if transform_prec_indicator_bits:
+        _transform_prec_c = (
+            "dynamicTransformPrecoderFieldPresenceDCI-0-1-r18 = enabled "
+            "-> 1 bit (TS 38.212 Rel-18 §7.3.1.1.2)")
+    else:
+        _transform_prec_c = (
+            "dynamicTransformPrecoderFieldPresenceDCI-0-1-r18 not configured "
+            "-> 0 bits")
+
+    # ------------------------------------------------------------------ #
+    #  Physical Cell ID (from RRC file header)                           #
+    # ------------------------------------------------------------------ #
+    _pci = _parse_physical_cell_id()
+    _cell_label = f"Cell_{_pci}_0" if _pci is not None else "Cell_unknown_0"
+
     # ------------------------------------------------------------------ #
     #  Standard reference banner                                          #
     # ------------------------------------------------------------------ #
     SPEC_REF  = "3GPP TS 38.212 \u00a77.3.1  +  TS 38.331 V17 ServingCellConfigCommon"
     INPUT_SRC = "Input: RRC text file (.txt)"
-    banner_inner = f"  {SPEC_REF}    {INPUT_SRC}  "
-    banner_w = max(len(banner_inner), 74)
-    banner_inner = banner_inner.ljust(banner_w)
+    if _RRC_PREFER_SETUP:
+        RRC_MODE = ("RRC source: rrcSetup (--rrc-source=setup; rrcReconfiguration "
+                    "overrides ignored)")
+    else:
+        RRC_MODE = ("RRC source: rrcReconfiguration when present, else rrcSetup "
+                    "(default; --rrc-source=auto)")
+    line1 = f"  {SPEC_REF}    {INPUT_SRC}  "
+    line2 = f"  {RRC_MODE}  "
+    _dl_banner_detail = (
+        f"{_dl_scope_label}, BWP entry line {_dl_dedicated_entry + 1}"
+        if (_dl_scope_label.startswith("active dedicated") and _dl_dedicated_entry >= 0)
+        else f"{_dl_scope_label}, line {_dl_scope + 1}")
+    _ul_banner_detail = (
+        f"{_ul_scope_label}, BWP entry line {_ul_dedicated_entry + 1}"
+        if (_ul_scope_label.startswith("active dedicated") and _ul_dedicated_entry >= 0)
+        else f"{_ul_scope_label}, line {_ul_scope + 1}")
+    line3 = (f"  DL anchor: {_dl_banner_detail}  |  "
+             f"UL anchor: {_ul_banner_detail}  ")
+    banner_w = max(len(line1), len(line2), len(line3), 74)
+    line1 = line1.ljust(banner_w)
+    line2 = line2.ljust(banner_w)
+    line3 = line3.ljust(banner_w)
+    _line3_warn = ("temporal fall-back" in _dl_scope_label or
+                   "temporal fall-back" in _ul_scope_label)
     print()
     print(CYAN("\u2554" + "\u2550" * banner_w + "\u2557"))
-    print(CYAN("\u2551") + BOLD(CYAN(banner_inner)) + CYAN("\u2551"))
+    print(CYAN("\u2551") + BOLD(CYAN(line1)) + CYAN("\u2551"))
+    print(CYAN("\u2551") + (YELLOW(line2) if _RRC_PREFER_SETUP else DIM(line2)) + CYAN("\u2551"))
+    print(CYAN("\u2551") + (YELLOW(line3) if _line3_warn else DIM(line3)) + CYAN("\u2551"))
     print(CYAN("\u255a" + "\u2550" * banner_w + "\u255d"))
 
     def print_dci_table(fmt_name, fields):
@@ -1493,14 +2680,43 @@ def main():
         print("  " + header)
         print("  " + mid)
 
+        # Fixed-width "always-present" field names — dimmer to reduce noise
+        _FIXED_NAMES = frozenset({
+            "Identifier for DCI formats",
+            "Modulation and coding scheme",
+            "Modulation and coding scheme (TB1)",
+            "New data indicator",
+            "New data indicator (TB1)",
+            "Redundancy version",
+            "Redundancy version (TB1)",
+            "HARQ process number",
+            "TPC command for scheduled PUSCH",
+            "TPC command for scheduled PUCCH",
+            "PUCCH resource indicator",
+            "UL-SCH indicator",
+            "DMRS sequence initialization",
+        })
+
         for idx, (name, bits, comment) in enumerate(fields, start=1):
             b_str = "?" if bits is None else str(bits)
             is_zero = (bits == 0)
+            is_fixed = (name in _FIXED_NAMES)
             comment_lines = _wrap(comment, cmt_w)
 
-            num_cell   = f"{idx}"
-            bits_color = (DIM if is_zero else (YELLOW if bits is None else GREEN))
-            name_color = (DIM if is_zero else BOLD)
+            num_cell = f"{idx}"
+            if is_zero:
+                bits_color = DIM
+                name_color = DIM
+            elif bits is None:
+                bits_color = YELLOW
+                name_color = BOLD
+            elif is_fixed:
+                bits_color = GREEN
+                name_color = lambda s: s  # no extra style for fixed fields
+            else:
+                # Variable non-zero field: highlight in CYAN
+                bits_color = lambda s: BOLD(CYAN(s))
+                name_color = lambda s: BOLD(CYAN(s))
 
             for li, cline in enumerate(comment_lines):
                 if li == 0:
@@ -1532,6 +2748,8 @@ def main():
     # ------------------------------------------------------------------ #
     #  Build per-field comment strings from parsed values                 #
     # ------------------------------------------------------------------ #
+    _fdr_win_max, _fdr_win_note, _fdr_win_rows = collect_max_fdr_bits_dci11_window(
+        _dai_lo, _dai_hi, dllocationandbandwidthvalue)
 
     # Bandwidth part indicator
     _dlbwp_c = (f"downlinkBWP-ToAddModList: {numberofdownlinkbwpvalue} BWP(s) "
@@ -1540,39 +2758,49 @@ def main():
                 f"-> ceil(log2({numberofuplinkbwpvalue}+1)) = {ulbwpfieldvalue} bit(s)")
 
     # Frequency domain resource assignment
-    _frdl_src = " [from mrdc-SecondaryCellGroup nr-SCG]" if _nrdc_scg else ""
     if dlresourceallocationvalue == resourceAllocationType0:
-        _frdl_c = (f"RA type0 (RBG){_frdl_src}: nrb={dlnrb}, nominalRBG={dlnominalrbg} "
+        _frdl_c = (f"RA type0 (RBG){_dl_src_note}: nrb={dlnrb}, nominalRBG={dlnominalrbg} "
                    f"-> ceil({dlnrb}/{dlnominalrbg}) = {frdabitsdl} bits")
     elif dlresourceallocationvalue == resourceAllocationType1:
-        _frdl_c = (f"RA type1 (RIV){_frdl_src}: nrb={dlnrb} "
+        _frdl_c = (f"RA type1 (RIV){_dl_src_note}: nrb={dlnrb} "
                    f"-> ceil(log2({dlnrb}x{dlnrb+1}/2)) = {frdabitsdl} bits")
     elif dlresourceallocationvalue == dynamicSwitch:
-        _frdl_c = f"RA dynamic{_frdl_src}: max(type0,type1)+1 = {frdabitsdl} bits"
+        _frdl_c = f"RA dynamic{_dl_src_note}: max(type0,type1)+1 = {frdabitsdl} bits"
     else:
-        _frdl_c = f"resourceAllocation not found in pdsch-Config{_frdl_src} -> None"
+        _frdl_c = f"resourceAllocation not found in pdsch-Config{_dl_src_note} -> None"
+
+    if frdabitsdl is not None and _fdr_win_max > frdabitsdl and _fdr_win_note:
+        _frdl_c = _frdl_c + "  |  " + _fdr_win_note
 
     if frequencyhoppingoffsetlistsvalue in (2, 4):
-        _frul_c = (f"Freq hopping ({frequencyhoppingoffsetlistsvalue} offsets): "
+        _frul_c = (f"Freq hopping ({frequencyhoppingoffsetlistsvalue} offsets){_ul_src_note}: "
                    f"ulnrf1-{frequencyhoppingoffsetlistsvalue} = {frdabitsul} bits")
     elif ulresourceallocationvalue == resourceAllocationType1:
-        _frul_c = (f"RA type1 (RIV): nrb={ulnrb} "
+        _frul_c = (f"RA type1 (RIV){_ul_src_note}: nrb={ulnrb} "
                    f"-> ceil(log2({ulnrb}x{ulnrb+1}/2)) = {frdabitsul} bits")
     elif ulresourceallocationvalue == resourceAllocationType0:
-        _frul_c = (f"RA type0 (RBG): nrb={ulnrb}, nominalRBG={ulnominalrbg} "
+        _frul_c = (f"RA type0 (RBG){_ul_src_note}: nrb={ulnrb}, nominalRBG={ulnominalrbg} "
                    f"-> ceil({ulnrb}/{ulnominalrbg}) = {frdabitsul} bits")
     elif ulresourceallocationvalue == dynamicSwitch:
-        _frul_c = f"RA dynamic: max(type0,type1)+1 = {frdabitsul} bits"
+        _frul_c = f"RA dynamic{_ul_src_note}: max(type0,type1)+1 = {frdabitsul} bits"
     else:
         _frul_c = "resourceAllocation not found in pusch-Config -> None"
 
-    # Time domain resource assignment
-    _tdr_dl_c = (f"pdsch-TimeDomainAllocationList: {pdschtimedomainallocationlistvalue} entries "
+    # Time domain resource assignment - the source label is set above by
+    # the override-then-legacy lookup so the per-field table makes it
+    # obvious whether the bit-width came from the legacy R15 list or from
+    # the R16 override IE (TS 38.214 S5.1.2.1.1 / S6.1.2.1.1).
+    _tdr_dl_c = (f"{_tdr_dl_src_label}: {pdschtimedomainallocationlistvalue} entries "
                  f"-> ceil(log2({pdschtimedomainallocationlistvalue})) = {tdrabitsdl} bits")
-    _tdr_ul_src = " [from mrdc-SecondaryCellGroup nr-SCG]" if _nrdc_scg else ""
-    _tdr_ul_c = (f"pusch-TimeDomainAllocationList{_tdr_ul_src}: "
-                 f"{puschtimedomainallocationlistvalue} entries "
-                 f"-> ceil(log2({puschtimedomainallocationlistvalue})) = {tdrabitsul} bits")
+    _tdr_ul_src = _ul_src_note
+    if puschtimedomainallocationlistvalue is None:
+        _tdr_ul_c = (f"No pusch-TimeDomainAllocationList in active pusch-Config"
+                     f"{_tdr_ul_src} -> Default A (16 entries) = 4 bits "
+                     f"(TS 38.214 Table 6.1.2.1.1-1A)")
+    else:
+        _tdr_ul_c = (f"{_tdr_ul_src_label}{_tdr_ul_src}: "
+                     f"{puschtimedomainallocationlistvalue} entries "
+                     f"-> ceil(log2({puschtimedomainallocationlistvalue})) = {tdrabitsul} bits")
 
     # VRB-to-PRB mapping
     _vrb_c = ("vrb-ToPRB-Interleaver present + RA type1 -> 1 bit"
@@ -1598,13 +2826,17 @@ def main():
              "aperiodic-ZP-CSI-RS not configured -> 0 bits")
 
     # Downlink assignment index
-    _harq_src = ("parsed from physicalCellGroupConfig"
-                 if any('physicalCellGroupConfig' in r for r in rows)
-                 else "physicalCellGroupConfig absent (delta reconfig) -> defaulted to dynamic")
+    _win = rows[_dai_lo:min(_dai_hi, rrclength)]
+    _harq_src = (
+        f"physicalCellGroupConfig in cell-group window (lines {_dai_lo + 1}–{_dai_hi})"
+        if any('physicalCellGroupConfig' in r for r in _win)
+        else "physicalCellGroupConfig absent in window (delta reconfig?) -> defaulted to dynamic")
     if DLassignmentfieldvalue == 4:
-        _dlai_c = f"pdschHARQ-ACK-Codebook=dynamic + SCells configured -> 4 bits [{_harq_src}]"
+        _dlai_c = (f"pdschHARQ-ACK-Codebook=dynamic + sCellToAddModList in cell-group window "
+                   f"-> 4 bits [{_harq_src}]")
     elif DLassignmentfieldvalue == 2:
-        _dlai_c = f"pdschHARQ-ACK-Codebook=dynamic, single serving cell -> 2 bits [{_harq_src}]"
+        _dlai_c = (f"pdschHARQ-ACK-Codebook=dynamic, no sCellToAddModList in window "
+                   f"-> 2 bits [{_harq_src}]")
     elif DLassignmentfieldvalue == 1:
         _dlai_c = f"pdschHARQ-ACK-Codebook=semi-static + serving cell -> 1 bit [{_harq_src}]"
     else:
@@ -1698,8 +2930,11 @@ def main():
         _subset_label = (codebooksubsetvalue if codebooksubsetvalue in
                          (codebooksubset1, codebooksubset2, codebooksubset3)
                          else f"{codebooksubset1} (default)")
-        _mr_src = " [from rrcReconfiguration]" if _maxrank_from_reconfig else ""
-        _sp_src = " [from rrcReconfiguration]" if _nrofsrs_from_reconfig else ""
+        if _ul_src_note:
+            _mr_src = _sp_src = _ul_src_note
+        else:
+            _mr_src = " [from rrcReconfiguration]" if _maxrank_from_reconfig else ""
+            _sp_src = " [from rrcReconfiguration]" if _nrofsrs_from_reconfig else ""
         _pre_c = (f"transformPrecoder=disabled, nrofSRS-Ports={antennaportsvalue}{_sp_src}, "
                   f"maxRank={maxrankvalue}{_mr_src}, codebookSubset={_subset_label} "
                   f"-> {precodingnumberoflayers} bits (TS 38.212 Table 7.3.1.1.2-5)")
@@ -1716,7 +2951,7 @@ def main():
               if reporttriggersizevalue else
               "reportTriggerSize not configured -> 0 bits")
 
-    _ptrs_src = " [from rrcReconfiguration]" if _ptrs_from_reconfig else ""
+    _ptrs_src = _ul_src_note if _ul_src_note else (" [from rrcReconfiguration]" if _ptrs_from_reconfig else "")
     _tp_is_enabled = (transformprecodervalue == transformprecoderenabled)
     _tp_is_disabled = (transformprecodervalue == transformprecoderdisabled)
     _ptrs_ports_lbl = ("n1 (1 PTRS port)" if ptrs_maxnrofports == 1
@@ -1755,9 +2990,9 @@ def main():
 
     # Beta offset indicator
     if _nrdc_scg:
-        _beta_src = " [from mrdc-SecondaryCellGroup nr-SCG]"
+        _beta_src = _ul_src_note
     elif _betaoffsets_from_reconfig:
-        _beta_src = " [from rrcReconfiguration]"
+        _beta_src = _ul_src_note if _ul_src_note else " [from rrcReconfiguration]"
     else:
         _beta_src = ""
     # Check whether betaOffsets semiStatic is the reason for 0 bits
@@ -1789,7 +3024,7 @@ def main():
                           checkvalue2(codeblockflushindicatorfieldvalue) +
                           checkvalue2(transmissionconfigurationfieldvalue) +
                           checkvalue2(cbgtransmissioninformationfieldvalue11))
-    totallength11 = fixedlength11 + modifiablelength11
+    totallength11 = fixedlength11 + modifiablelength11 + pdcch_monitoring_adapt_bits
 
     fields11 = [
         ('Identifier for DCI formats',               1,                                       "Fixed 1 bit (TS 38.212 \u00a77.3.1.2.2)"),
@@ -1815,8 +3050,10 @@ def main():
         ('CBG transmission information (CBGTI)',      cbgtransmissioninformationfieldvalue11,  _cbgti11_c),
         ('CBG flushing out information (CBGFI)',      codeblockflushindicatorfieldvalue,        _cbgfi_c),
         ('DMRS sequence initialization',              1,                                       "Fixed 1 bit (TS 38.212 \u00a77.3.1.2.2)"),
+        ('PDCCH monitoring adaptation indication',    pdcch_monitoring_adapt_bits,             _pdcch_mon_c),
     ]
-    print_dci_table('Format 1_1 (PDSCH - Normal)', fields11)
+    if _FORMAT == 'full':
+        print_dci_table('Format 1_1 (PDSCH - Normal)', fields11)
 
     # DCI 1_1 - Conditional / Optional fields (TS 38.212 7.3.1.2.2)
     fields11_optional = [
@@ -1848,12 +3085,11 @@ def main():
          "minimumSchedulingOffsetK0 not configured -> 0 bits"),
         ('SCell dormancy indication',                0,
          "dormancyGroupWithinActiveTime not configured -> 0 bits"),
-        ('PDCCH monitoring adaptation indication',   0,
-         "pdcch-SkippingDurationList / searchSpaceGroupIdList-r17 not configured -> 0 bits"),
         ('PUCCH Cell indicator',                     0,
          "pucch-sSCellDyn not configured -> 0 bits"),
     ]
-    print_dci_table('Format 1_1 \u2013 Conditional/Optional Fields (TS 38.212 \u00a77.3.1.2.2)', fields11_optional)
+    if _FORMAT == 'full' and _SHOW_OPTIONAL:
+        print_dci_table('Format 1_1 \u2013 Conditional/Optional Fields (TS 38.212 \u00a77.3.1.2.2)', fields11_optional)
 
     # ------------------------------------------------------------------ #
     #  DCI Format 0_1 (UL)                                               #
@@ -1867,7 +3103,7 @@ def main():
                           checkvalue2(dmrssequencefieldvalue) + checkvalue2(ulhopping) +
                           checkvalue2(srsindicatorfieldvalue) + checkvalue2(betaoffsetfieldvalue) +
                           checkvalue2(maxcodeblockgroupspertransportblockvalue01))
-    totallength01 = fixedlength01 + modifiablelength01
+    totallength01 = fixedlength01 + modifiablelength01 + pdcch_monitoring_adapt_bits + transform_prec_indicator_bits
 
     # Core DCI 0_1 fields (original modelled fields)
     fields01 = [
@@ -1894,8 +3130,11 @@ def main():
         ('Beta offset indicator',                            betaoffsetfieldvalue,                    _beta_c),
         ('DMRS sequence initialization',                     dmrssequencefieldvalue,                  _dmrs01_c),
         ('UL-SCH indicator',                                 1,                                       "Fixed 1 bit"),
+        ('PDCCH monitoring adaptation indication',           pdcch_monitoring_adapt_bits,             _pdcch_mon_c),
+        ('Transform precoder indication',                    transform_prec_indicator_bits,           _transform_prec_c),
     ]
-    print_dci_table('Format 0_1 (PUSCH - Normal)', fields01)
+    if _FORMAT == 'full':
+        print_dci_table('Format 0_1 (PUSCH - Normal)', fields01)
 
     # DCI 0_1 - Conditional / Optional fields (TS 38.212 7.3.1.1.2)
     # These fields are present in the spec but evaluate to 0 bits for this
@@ -1940,10 +3179,9 @@ def main():
          "dormancyGroupWithinActiveTime not configured -> 0 bits"),
         ('Sidelink assignment index',                0,
          "No SL configured grant or DCI format 3_0 monitoring -> 0 bits"),
-        ('PDCCH monitoring adaptation indication',   0,
-         "pdcch-SkippingDurationList / searchSpaceGroupIdList-r17 not configured -> 0 bits"),
     ]
-    print_dci_table('Format 0_1 \u2013 Conditional/Optional Fields (TS 38.212 \u00a77.3.1.1.2)', fields01_optional)
+    if _FORMAT == 'full' and _SHOW_OPTIONAL:
+        print_dci_table('Format 0_1 \u2013 Conditional/Optional Fields (TS 38.212 \u00a77.3.1.1.2)', fields01_optional)
 
     # ------------------------------------------------------------------ #
     #  DCI Size Summary (all formats) - core scope:                      #
@@ -2017,6 +3255,154 @@ def main():
          totallength11,
          f"From per-field calculation in Format 1_1 table above ({totallength11} bits)"),
     ]
-    print_dci_table('Size Summary (all formats, aligned per TS 38.212 \u00a77.3.1.0)', fb_summary)
+    if _FORMAT != 'quiet':
+        print_dci_table('Size Summary (all formats, aligned per TS 38.212 \u00a77.3.1.0)', fb_summary)
 
-main()
+    # ------------------------------------------------------------------ #
+    #  Compact cell-parameters + DCI sizes summary  (full + summary)     #
+    # ------------------------------------------------------------------ #
+    _scs_dl_str = (f"{subcarrierspacingdlvalue} kHz"
+                   if subcarrierspacingdlvalue else "?")
+    _scs_ul_str = (f"{subcarrierspacingulvalue} kHz"
+                   if subcarrierspacingulvalue else "?")
+    _pci_str = str(_pci) if _pci is not None else "N/A"
+    _cell_id = parse_cell_identity_prefer_reconfig()
+    _log_hdr = _parse_log_header_cell_fields()
+    _phys_rrc = _cell_id.get("phys_cell_id")
+    if _phys_rrc is not None and _pci is not None and _phys_rrc != _pci:
+        _pci_display = f"{_pci} (RRC physCellId {_phys_rrc})"
+    elif _phys_rrc is not None and _pci is None:
+        _pci_display = str(_phys_rrc)
+    else:
+        _pci_display = _pci_str
+    _band_str = f"n{_cell_id['band']}" if _cell_id.get("band") is not None else "?"
+    _ssb_str = (str(_cell_id["ssb_arfcn"]) if _cell_id.get("ssb_arfcn") is not None
+                else "?")
+    _pointa_str = (str(_cell_id["point_a_arfcn"])
+                   if _cell_id.get("point_a_arfcn") is not None else "?")
+    _serv_str = (str(_cell_id["serv_cell_index"])
+                 if _cell_id.get("serv_cell_index") is not None else "?")
+    _nrdc_str = "yes" if _nrdc_scg else "no"
+    _dl_lab_str = (str(dllocationandbandwidthvalue)
+                   if dllocationandbandwidthvalue else "?")
+    _ul_lab_str = (str(ullocationandbandwidthvalue)
+                   if ullocationandbandwidthvalue else "?")
+    _dl_start_str = str(dlstartrb) if dlnrb else "?"
+    _ul_start_str = str(ulstartrb) if ulnrb else "?"
+
+    if _FORMAT != 'quiet':
+        print()
+        print("  " + BOLD(MAGENTA("Cell parameters")))
+        _row_identity = [
+            ("PCI",           _pci_display),
+            ("Band",          _band_str),
+            ("SSB ARFCN",     _ssb_str),
+            ("Point A ARFCN", _pointa_str),
+            ("servCellIndex", _serv_str),
+            ("NR-DC SCG",     _nrdc_str),
+        ]
+        if _log_hdr.get("ncgi"):
+            _row_identity.append(("NCGI (log)", _log_hdr["ncgi"]))
+        if _log_hdr.get("freq"):
+            _row_identity.append(("Freq (log)", _log_hdr["freq"]))
+        _row_bwp = [
+            ("DL N_RB",          str(dlnrb) if dlnrb else "?"),
+            ("DL start RB",      _dl_start_str),
+            ("DL L&B",           _dl_lab_str),
+            ("UL N_RB",          str(ulnrb) if ulnrb else "?"),
+            ("UL start RB",      _ul_start_str),
+            ("UL L&B",           _ul_lab_str),
+        ]
+        _row_config = [
+            ("DL SCS",           _scs_dl_str),
+            ("UL SCS",           _scs_ul_str),
+            ("DL BWPs",          str(numberofdownlinkbwpvalue) if numberofdownlinkbwpvalue else "?"),
+            ("UL BWPs",          str(numberofuplinkbwpvalue) if numberofuplinkbwpvalue else "?"),
+            ("Active DL bwp-Id", _dl_anchor_id if _dl_anchor_id else "?"),
+            ("Active UL bwp-Id", _ul_anchor_id if _ul_anchor_id else "?"),
+        ]
+        _print_cell_param_rows([_row_identity, _row_bwp, _row_config])
+        print()
+        print("  " + BOLD(MAGENTA("DCI sizes (core formats)")))
+        _css_aln_disp = (
+            (BOLD(GREEN(str(d_css_aligned))) if USE_COLOR else str(d_css_aligned))
+            if d_css_aligned is not None
+            else (
+                DIM("N/A (initial BWP not in capture)")
+                if USE_COLOR
+                else "N/A (initial BWP not in capture)"
+            )
+        )
+        _sz_pairs = [
+            ("DCI 1_1 (PDSCH)",           BOLD(GREEN(str(totallength11))) if USE_COLOR else str(totallength11)),
+            ("DCI 0_1 (PUSCH)",           BOLD(GREEN(str(totallength01))) if USE_COLOR else str(totallength01)),
+            ("DCI 1_0 / 0_0 USS aligned", BOLD(GREEN(str(d_uss_aligned))) if USE_COLOR else str(d_uss_aligned)),
+            ("DCI 1_0 / 0_0 CSS aligned", _css_aln_disp),
+        ]
+        print("  " + "   ".join(
+            f"{DIM(k + ':') if USE_COLOR else k + ':'} {v}"
+            for k, v in _sz_pairs
+        ))
+        if (frdabitsdl is not None and _fdr_win_max > frdabitsdl
+                and _fdr_win_note):
+            print()
+            print("  " + DIM("FDRA (max in cell-group window vs active BWP): ")
+                  + (f"{_fdr_win_max} bits vs {frdabitsdl} bits — see DCI 1_1 table comment."
+                     if not USE_COLOR else
+                     f"{BOLD(str(_fdr_win_max))} bits vs {frdabitsdl} bits — see DCI 1_1 table comment."))
+
+    # ------------------------------------------------------------------ #
+    #  Write Wireshark config files  (unless --no-config)                #
+    # ------------------------------------------------------------------ #
+    if not _NO_CONFIG:
+        _cfg01, _cfg11 = _write_wireshark_config(
+            filepath, _cell_label, _OUTPUT_DIR,
+            ulsulfieldvalue, ulbwpfieldvalue, frdabitsul, tdrabitsul, ulhopping,
+            dlassignment, srsindicatorfieldvalue, precodingnumberoflayers,
+            antennaports01fieldvalue, srsrequestfieldvalue, reporttriggersizevalue,
+            maxcodeblockgroupspertransportblockvalue01, prtsdmrsfieldvalue,
+            betaoffsetfieldvalue, dmrssequencefieldvalue, totallength01,
+            dlbwpfieldvalue, frdabitsdl, tdrabitsdl, vrbprbfieldvalue,
+            prbbundlefieldvalue, ratematchingindicatorsizefieldvalue,
+            zpcsirstriggerfieldvalue, DLassignmentfieldvalue,
+            pdschtoharqtimingindfieldvalue, antennaportsvaluefieldvalue,
+            transmissionconfigurationfieldvalue, srsrequestfieldvalue,
+            cbgtransmissioninformationfieldvalue11, codeblockflushindicatorfieldvalue,
+            totallength11,
+            pdcch_monitoring_adapt_bits,
+        )
+        if _FORMAT == 'quiet':
+            # Quiet mode: one terse confirmation line then stop
+            print(f"Config written: {_cfg01}  |  {_cfg11}")
+        else:
+            print()
+            print("  " + BOLD(MAGENTA("Config files written")))
+            print(f"    {DIM('DCI 0_1:') if USE_COLOR else 'DCI 0_1:'} {_cfg01}")
+            print(f"    {DIM('DCI 1_1:') if USE_COLOR else 'DCI 1_1:'} {_cfg11}")
+
+
+def _launch_gui():
+    """FR2 DCI Helper GUI (tkinter — small frozen footprint; no Qt).
+
+    Opens when the tool is invoked without a positional file argument (or
+    with --gui).  The Run button re-invokes this app as a subprocess and
+    streams merged stdout/stderr.  Wireshark copy + backups match the Qt GUI.
+    Settings: ~/.fr2_dci_helper.json (wireshark_dir).
+
+    Optional Qt UI (source only, larger): run ``python fr2_qt_gui.py`` from
+    this directory (requires ``pip install PySide6``). Do not import fr2_qt_gui
+    from here so PyInstaller does not bundle Qt into the default EXE.
+    """
+    _here = os.path.dirname(os.path.abspath(__file__))
+    if _here not in sys.path:
+        sys.path.insert(0, _here)
+    import fr2_tk_gui  # noqa: PLC0415
+
+    raise SystemExit(fr2_tk_gui.main())
+
+
+
+if _DO_GUI:
+    _launch_gui()
+else:
+    main()

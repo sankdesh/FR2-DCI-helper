@@ -28,10 +28,25 @@ ts_*.pdf
 *.xlsx
 *.xls
 *.docx
+!Try 2/3GPP_SPEC_TRACEABILITY.docx
 *.doc
 
 # Editor / OS noise
 .vscode/
 .idea/
+.cursor/
 Thumbs.db
 .DS_Store
+
+# Local scratch / tool output (not for git)
+debug-*.log
+out_*.txt
+*_out.txt
+missing_*.txt
+spec_search*.txt
+location.txt
+verify_*.txt
+
+# Generated Wireshark configs at repo root
+/dci_0_1_fields_config
+/dci_1_1_fields_config

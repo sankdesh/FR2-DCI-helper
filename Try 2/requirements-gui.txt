@@ -1,0 +1,15 @@
+# Default GUI is tkinter (stdlib) — no extra pip packages for --gui or frozen EXE.
+#
+# Optional Qt UI (source only):  pip install PySide6   then   python fr2_qt_gui.py
+# PySide6>=6.6.0
+
+# --- Windows: pip fails with OSError on very long paths when installing PySide6 ---
+# Fix A (recommended): enable long paths, reboot, then reinstall.
+#   Admin PowerShell: reg add HKLM\SYSTEM\CurrentControlSet\Control\FileSystem /v LongPathsEnabled /t REG_DWORD /d 1 /f
+# Fix B: venv in a short path, e.g. C:\py\fr2\Scripts\activate
+# Fix C: python.org install to C:\Python313\ instead of Store Python.
+
+# --- pip says PySide6 satisfied but FR2_DCI_GUI=qt still errors ---
+# Same interpreter:  python -m pip install --user --force-reinstall PySide6
+# PYTHONNOUSERSITE=1 or python -S hides user installs.
+# FR2_DCI_GUI_DEBUG=1 for Qt traceback.

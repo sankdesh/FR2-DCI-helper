@@ -1,0 +1,2460 @@
+04:02:02.613	[0xB821]	DL_CCCH / RRC Setup
+Pkt Version = 28
+RRC Release Number.Major.minor = 18.2.0
+Radio Bearer ID = 0, Physical Cell ID = 911
+NR Cell Global ID = 4240816412403553
+Freq = 2033947
+Sfn = 554, SubFrameNum = 2
+slot = 5
+PDU Number = DL_CCCH Message,    Msg Length = 985
+SIB Mask in SI =  0x00
+ChoId = N/A
+Segmented PDU = false
+Last Segment = NA
+Segment Index = NA
+Interpreted PDU:
+
+value DL-CCCH-Message ::= 
+{
+  message c1 : rrcSetup : 
+      {
+        rrc-TransactionIdentifier 0,
+        criticalExtensions rrcSetup : 
+          {
+            radioBearerConfig 
+            {
+              srb-ToAddModList 
+              {
+                {
+                  srb-Identity 1
+                }
+              }
+            },
+            masterCellGroup 
+              CONTAINING
+              {
+                cellGroupId 0,
+                rlc-BearerToAddModList 
+                {
+                  {
+                    logicalChannelIdentity 1,
+                    servedRadioBearer srb-Identity : 1,
+                    rlc-Config am : 
+                      {
+                        ul-AM-RLC 
+                        {
+                          sn-FieldLength size12,
+                          t-PollRetransmit ms45,
+                          pollPDU infinity,
+                          pollByte infinity,
+                          maxRetxThreshold t8
+                        },
+                        dl-AM-RLC 
+                        {
+                          sn-FieldLength size12,
+                          t-Reassembly ms35,
+                          t-StatusProhibit ms0
+                        }
+                      },
+                    mac-LogicalChannelConfig 
+                    {
+                      ul-SpecificParameters 
+                      {
+                        priority 1,
+                        prioritisedBitRate infinity,
+                        bucketSizeDuration ms50,
+                        logicalChannelGroup 0,
+                        schedulingRequestID 0,
+                        logicalChannelSR-Mask FALSE,
+                        logicalChannelSR-DelayTimerApplied FALSE
+                      }
+                    }
+                  }
+                },
+                mac-CellGroupConfig 
+                {
+                  schedulingRequestConfig 
+                  {
+                    schedulingRequestToAddModList 
+                    {
+                      {
+                        schedulingRequestId 0,
+                        sr-TransMax n64
+                      }
+                    }
+                  },
+                  bsr-Config 
+                  {
+                    periodicBSR-Timer sf10,
+                    retxBSR-Timer sf80
+                  },
+                  tag-Config 
+                  {
+                    tag-ToAddModList 
+                    {
+                      {
+                        tag-Id 0,
+                        timeAlignmentTimer infinity
+                      }
+                    }
+                  },
+                  phr-Config setup : 
+                    {
+                      phr-PeriodicTimer sf20,
+                      phr-ProhibitTimer sf0,
+                      phr-Tx-PowerFactorChange dB3,
+                      multiplePHR FALSE,
+                      dummy FALSE,
+                      phr-Type2OtherCell FALSE,
+                      phr-ModeOtherCG real
+                    },
+                  skipUplinkTxDynamic FALSE
+                },
+                physicalCellGroupConfig 
+                {
+                  pdsch-HARQ-ACK-Codebook dynamic
+                },
+                spCellConfig 
+                {
+                  spCellConfigDedicated 
+                  {
+                    downlinkBWP-ToAddModList 
+                    {
+                      {
+                        bwp-Id 1,
+                        bwp-Common 
+                        {
+                          genericParameters 
+                          {
+                            locationAndBandwidth 17875,
+                            subcarrierSpacing kHz120
+                          },
+                          pdcch-ConfigCommon setup : 
+                            {
+                              commonSearchSpaceList 
+                              {
+                                {
+                                  searchSpaceId 4,
+                                  controlResourceSetId 0,
+                                  monitoringSlotPeriodicityAndOffset sl5 : 0,
+                                  duration 3,
+                                  monitoringSymbolsWithinSlot '10000000 000000'B,
+                                  nrofCandidates 
+                                  {
+                                    aggregationLevel1 n0,
+                                    aggregationLevel2 n0,
+                                    aggregationLevel4 n2,
+                                    aggregationLevel8 n0,
+                                    aggregationLevel16 n0
+                                  },
+                                  searchSpaceType common : 
+                                    {
+                                      dci-Format0-0-AndFormat1-0 
+                                      {
+                                      }
+                                    }
+                                },
+                                {
+                                  searchSpaceId 5,
+                                  controlResourceSetId 0,
+                                  monitoringSlotPeriodicityAndOffset sl1 : NULL,
+                                  monitoringSymbolsWithinSlot '11000000 000000'B,
+                                  nrofCandidates 
+                                  {
+                                    aggregationLevel1 n0,
+                                    aggregationLevel2 n0,
+                                    aggregationLevel4 n2,
+                                    aggregationLevel8 n0,
+                                    aggregationLevel16 n0
+                                  },
+                                  searchSpaceType common : 
+                                    {
+                                      dci-Format0-0-AndFormat1-0 
+                                      {
+                                      }
+                                    }
+                                },
+                                {
+                                  searchSpaceId 6,
+                                  controlResourceSetId 0,
+                                  monitoringSlotPeriodicityAndOffset sl5 : 0,
+                                  duration 3,
+                                  monitoringSymbolsWithinSlot '10000000 000000'B,
+                                  nrofCandidates 
+                                  {
+                                    aggregationLevel1 n0,
+                                    aggregationLevel2 n0,
+                                    aggregationLevel4 n2,
+                                    aggregationLevel8 n0,
+                                    aggregationLevel16 n0
+                                  },
+                                  searchSpaceType common : 
+                                    {
+                                      dci-Format0-0-AndFormat1-0 
+                                      {
+                                      }
+                                    }
+                                }
+                              },
+                              searchSpaceSIB1 0,
+                              searchSpaceOtherSystemInformation 4,
+                              pagingSearchSpace 6,
+                              ra-SearchSpace 5,
+                              firstPDCCH-MonitoringOccasionOfPO sCS120KHZquarterT-SCS60KHZoneEighthT-SCS30KHZoneSixteenthT : 
+                                {
+                                  3
+                                }
+                            },
+                          pdsch-ConfigCommon setup : 
+                            {
+                              pdsch-TimeDomainAllocationList 
+                              {
+                                {
+                                  k0 0,
+                                  mappingType typeA,
+                                  startSymbolAndLength 40
+                                },
+                                {
+                                  k0 0,
+                                  mappingType typeA,
+                                  startSymbolAndLength 54
+                                },
+                                {
+                                  k0 0,
+                                  mappingType typeA,
+                                  startSymbolAndLength 53
+                                },
+                                {
+                                  k0 0,
+                                  mappingType typeA,
+                                  startSymbolAndLength 67
+                                }
+                              }
+                            }
+                        },
+                        bwp-Dedicated 
+                        {
+                          pdcch-Config setup : 
+                            {
+                              controlResourceSetToAddModList 
+                              {
+                                {
+                                  controlResourceSetId 1,
+                                  frequencyDomainResources '11111111 00000000 00000000 00000000 00000000 00000'B,
+                                  duration 1,
+                                  cce-REG-MappingType nonInterleaved : NULL,
+                                  precoderGranularity sameAsREG-bundle,
+                                  tci-StatesPDCCH-ToAddList 
+                                  {
+                                    0,
+                                    1,
+                                    2,
+                                    3,
+                                    4,
+                                    5,
+                                    6,
+                                    7,
+                                    16,
+                                    17,
+                                    18,
+                                    19,
+                                    20,
+                                    21,
+                                    22,
+                                    31
+                                  },
+                                  pdcch-DMRS-ScramblingID 63638
+                                }
+                              },
+                              searchSpacesToAddModList 
+                              {
+                                {
+                                  searchSpaceId 7,
+                                  controlResourceSetId 0,
+                                  monitoringSlotPeriodicityAndOffset sl1 : NULL,
+                                  monitoringSymbolsWithinSlot '11000000 000000'B,
+                                  nrofCandidates 
+                                  {
+                                    aggregationLevel1 n0,
+                                    aggregationLevel2 n0,
+                                    aggregationLevel4 n2,
+                                    aggregationLevel8 n0,
+                                    aggregationLevel16 n0
+                                  },
+                                  searchSpaceType common : 
+                                    {
+                                      dci-Format0-0-AndFormat1-0 
+                                      {
+                                      }
+                                    }
+                                },
+                                {
+                                  searchSpaceId 8,
+                                  controlResourceSetId 1,
+                                  monitoringSlotPeriodicityAndOffset sl1 : NULL,
+                                  monitoringSymbolsWithinSlot '11000000 000000'B,
+                                  nrofCandidates 
+                                  {
+                                    aggregationLevel1 n0,
+                                    aggregationLevel2 n0,
+                                    aggregationLevel4 n2,
+                                    aggregationLevel8 n0,
+                                    aggregationLevel16 n0
+                                  },
+                                  searchSpaceType ue-Specific : 
+                                    {
+                                      dci-Formats formats0-1-And-1-1
+                                    }
+                                }
+                              }
+                            },
+                          pdsch-Config setup : 
+                            {
+                              dmrs-DownlinkForPDSCH-MappingTypeA setup : 
+                                {
+                                  dmrs-AdditionalPosition pos1,
+                                  scramblingID0 911
+                                },
+                              tci-StatesToAddModList 
+                              {
+                                {
+                                  tci-StateId 0,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 2,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 2,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 1,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 4,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 4,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 2,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 6,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 6,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 3,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 8,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 8,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 4,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 10,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 10,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 5,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 12,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 12,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 6,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 14,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 14,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 7,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 16,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 16,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 16,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 34,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 34,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 17,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 36,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 36,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 18,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 38,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 38,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 19,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 40,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 40,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 20,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 42,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 42,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 21,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 44,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 44,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 22,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 46,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 46,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 31,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 64,
+                                    qcl-Type typeA
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal csi-rs : 64,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 32,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 4,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 4,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 33,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 5,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 5,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 34,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 6,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 6,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 35,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 7,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 7,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 36,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 12,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 12,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 37,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 13,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 13,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 38,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 14,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 14,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 39,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 15,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 15,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 48,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 36,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 36,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 49,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 37,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 37,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 50,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 38,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 38,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 51,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 39,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 39,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 52,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 44,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 44,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 53,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 45,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 45,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 54,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 46,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 46,
+                                    qcl-Type typeD
+                                  }
+                                },
+                                {
+                                  tci-StateId 63,
+                                  qcl-Type1 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 63,
+                                    qcl-Type typeC
+                                  },
+                                  qcl-Type2 
+                                  {
+                                    bwp-Id 1,
+                                    referenceSignal ssb : 63,
+                                    qcl-Type typeD
+                                  }
+                                }
+                              },
+                              resourceAllocation resourceAllocationType0,
+                              pdsch-TimeDomainAllocationList setup : 
+                                {
+                                  {
+                                    mappingType typeA,
+                                    startSymbolAndLength 40
+                                  },
+                                  {
+                                    mappingType typeA,
+                                    startSymbolAndLength 54
+                                  },
+                                  {
+                                    mappingType typeA,
+                                    startSymbolAndLength 53
+                                  },
+                                  {
+                                    mappingType typeA,
+                                    startSymbolAndLength 67
+                                  },
+                                  {
+                                    mappingType typeA,
+                                    startSymbolAndLength 96
+                                  },
+                                  {
+                                    mappingType typeA,
+                                    startSymbolAndLength 100
+                                  },
+                                  {
+                                    mappingType typeA,
+                                    startSymbolAndLength 99
+                                  },
+                                  {
+                                    mappingType typeA,
+                                    startSymbolAndLength 86
+                                  },
+                                  {
+                                    mappingType typeA,
+                                    startSymbolAndLength 95
+                                  }
+                                },
+                              rbg-Size config1,
+                              maxNrofCodeWordsScheduledByDCI n1,
+                              prb-BundlingType staticBundling : 
+                                {
+                                  bundleSize n4
+                                }
+                            }
+                        }
+                      }
+                    },
+                    firstActiveDownlinkBWP-Id 1,
+                    uplinkConfig 
+                    {
+                      uplinkBWP-ToAddModList 
+                      {
+                        {
+                          bwp-Id 1,
+                          bwp-Common 
+                          {
+                            genericParameters 
+                            {
+                              locationAndBandwidth 17875,
+                              subcarrierSpacing kHz120
+                            },
+                            rach-ConfigCommon setup : 
+                              {
+                                rach-ConfigGeneric 
+                                {
+                                  prach-ConfigurationIndex 175,
+                                  msg1-FDM one,
+                                  msg1-FrequencyStart 0,
+                                  zeroCorrelationZoneConfig 13,
+                                  preambleReceivedTargetPower -96,
+                                  preambleTransMax n200,
+                                  powerRampingStep dB2,
+                                  ra-ResponseWindow sl80
+                                },
+                                ssb-perRACH-OccasionAndCB-PreamblesPerSSB one : n48,
+                                ra-ContentionResolutionTimer sf64,
+                                rsrp-ThresholdSSB 11,
+                                prach-RootSequenceIndex l139 : 0,
+                                msg1-SubcarrierSpacing kHz120,
+                                restrictedSetConfig unrestrictedSet
+                              },
+                            pusch-ConfigCommon setup : 
+                              {
+                                pusch-TimeDomainAllocationList 
+                                {
+                                  {
+                                    k2 4,
+                                    mappingType typeB,
+                                    startSymbolAndLength 55
+                                  },
+                                  {
+                                    k2 4,
+                                    mappingType typeB,
+                                    startSymbolAndLength 69
+                                  },
+                                  {
+                                    k2 6,
+                                    mappingType typeB,
+                                    startSymbolAndLength 55
+                                  },
+                                  {
+                                    k2 7,
+                                    mappingType typeB,
+                                    startSymbolAndLength 55
+                                  },
+                                  {
+                                    k2 8,
+                                    mappingType typeB,
+                                    startSymbolAndLength 55
+                                  },
+                                  {
+                                    k2 11,
+                                    mappingType typeB,
+                                    startSymbolAndLength 55
+                                  },
+                                  {
+                                    k2 12,
+                                    mappingType typeB,
+                                    startSymbolAndLength 55
+                                  }
+                                },
+                                msg3-DeltaPreamble 1,
+                                p0-NominalWithGrant -80
+                              },
+                            pucch-ConfigCommon setup : 
+                              {
+                                pucch-GroupHopping neither,
+                                hoppingId 911,
+                                p0-nominal -76
+                              }
+                          },
+                          bwp-Dedicated 
+                          {
+                            pucch-Config setup : 
+                              {
+                                resourceSetToAddModList 
+                                {
+                                  {
+                                    pucch-ResourceSetId 0,
+                                    resourceList 
+                                    {
+                                      1,
+                                      2
+                                    }
+                                  },
+                                  {
+                                    pucch-ResourceSetId 1,
+                                    resourceList 
+                                    {
+                                      3,
+                                      4
+                                    }
+                                  }
+                                },
+                                resourceToAddModList 
+                                {
+                                  {
+                                    pucch-ResourceId 0,
+                                    startingPRB 10,
+                                    format format0 : 
+                                      {
+                                        initialCyclicShift 0,
+                                        nrofSymbols 1,
+                                        startingSymbolIndex 13
+                                      }
+                                  },
+                                  {
+                                    pucch-ResourceId 1,
+                                    startingPRB 57,
+                                    format format0 : 
+                                      {
+                                        initialCyclicShift 0,
+                                        nrofSymbols 1,
+                                        startingSymbolIndex 13
+                                      }
+                                  },
+                                  {
+                                    pucch-ResourceId 2,
+                                    startingPRB 57,
+                                    format format0 : 
+                                      {
+                                        initialCyclicShift 0,
+                                        nrofSymbols 1,
+                                        startingSymbolIndex 12
+                                      }
+                                  },
+                                  {
+                                    pucch-ResourceId 3,
+                                    startingPRB 11,
+                                    format format2 : 
+                                      {
+                                        nrofPRBs 16,
+                                        nrofSymbols 1,
+                                        startingSymbolIndex 13
+                                      }
+                                  },
+                                  {
+                                    pucch-ResourceId 4,
+                                    startingPRB 11,
+                                    format format2 : 
+                                      {
+                                        nrofPRBs 16,
+                                        nrofSymbols 1,
+                                        startingSymbolIndex 12
+                                      }
+                                  },
+                                  {
+                                    pucch-ResourceId 11,
+                                    startingPRB 11,
+                                    format format2 : 
+                                      {
+                                        nrofPRBs 4,
+                                        nrofSymbols 1,
+                                        startingSymbolIndex 13
+                                      }
+                                  },
+                                  {
+                                    pucch-ResourceId 12,
+                                    startingPRB 11,
+                                    format format2 : 
+                                      {
+                                        nrofPRBs 16,
+                                        nrofSymbols 1,
+                                        startingSymbolIndex 13
+                                      }
+                                  }
+                                },
+                                format2 setup : 
+                                  {
+                                    maxCodeRate zeroDot15
+                                  },
+                                schedulingRequestResourceToAddModList 
+                                {
+                                  {
+                                    schedulingRequestResourceId 1,
+                                    schedulingRequestID 0,
+                                    periodicityAndOffset sl320 : 9,
+                                    resource 0
+                                  }
+                                },
+                                dl-DataToUL-ACK 
+                                {
+                                  2,
+                                  3,
+                                  5,
+                                  6,
+                                  0,
+                                  0,
+                                  0,
+                                  0
+                                },
+                                spatialRelationInfoToAddModList 
+                                {
+                                  {
+                                    pucch-SpatialRelationInfoId 1,
+                                    referenceSignal csi-RS-Index : 0,
+                                    pucch-PathlossReferenceRS-Id 0,
+                                    p0-PUCCH-Id 1,
+                                    closedLoopIndex i0
+                                  }
+                                },
+                                pucch-PowerControl 
+                                {
+                                  deltaF-PUCCH-f0 0,
+                                  deltaF-PUCCH-f2 0,
+                                  p0-Set 
+                                  {
+                                    {
+                                      p0-PUCCH-Id 1,
+                                      p0-PUCCH-Value 0
+                                    }
+                                  },
+                                  pathlossReferenceRSs 
+                                  {
+                                    {
+                                      pucch-PathlossReferenceRS-Id 0,
+                                      referenceSignal csi-RS-Index : 0
+                                    }
+                                  }
+                                }
+                              },
+                            pusch-Config setup : 
+                              {
+                                txConfig codebook,
+                                dmrs-UplinkForPUSCH-MappingTypeB setup : 
+                                  {
+                                    dmrs-AdditionalPosition pos1,
+                                    transformPrecodingDisabled 
+                                    {
+                                    }
+                                  },
+                                pusch-PowerControl 
+                                {
+                                  p0-AlphaSets 
+                                  {
+                                    {
+                                      p0-PUSCH-AlphaSetId 0,
+                                      p0 0,
+                                      alpha alpha1
+                                    }
+                                  },
+                                  pathlossReferenceRSToAddModList 
+                                  {
+                                    {
+                                      pusch-PathlossReferenceRS-Id 0,
+                                      referenceSignal csi-RS-Index : 0
+                                    }
+                                  }
+                                },
+                                resourceAllocation resourceAllocationType1,
+                                pusch-TimeDomainAllocationList setup : 
+                                  {
+                                    {
+                                      k2 4,
+                                      mappingType typeB,
+                                      startSymbolAndLength 55
+                                    },
+                                    {
+                                      k2 4,
+                                      mappingType typeB,
+                                      startSymbolAndLength 69
+                                    },
+                                    {
+                                      k2 6,
+                                      mappingType typeB,
+                                      startSymbolAndLength 55
+                                    },
+                                    {
+                                      k2 7,
+                                      mappingType typeB,
+                                      startSymbolAndLength 55
+                                    },
+                                    {
+                                      k2 8,
+                                      mappingType typeB,
+                                      startSymbolAndLength 55
+                                    },
+                                    {
+                                      k2 11,
+                                      mappingType typeB,
+                                      startSymbolAndLength 55
+                                    },
+                                    {
+                                      k2 12,
+                                      mappingType typeB,
+                                      startSymbolAndLength 55
+                                    }
+                                  },
+                                transformPrecoder disabled,
+                                codebookSubset nonCoherent,
+                                maxRank 1
+                              },
+                            srs-Config setup : 
+                              {
+                                srs-ResourceSetToAddModList 
+                                {
+                                  {
+                                    srs-ResourceSetId 0,
+                                    srs-ResourceIdList 
+                                    {
+                                      0
+                                    },
+                                    resourceType aperiodic : 
+                                      {
+                                        aperiodicSRS-ResourceTrigger 1,
+                                        slotOffset 4
+                                      },
+                                    usage codebook,
+                                    alpha alpha1,
+                                    p0 -80
+                                  }
+                                },
+                                srs-ResourceToAddModList 
+                                {
+                                  {
+                                    srs-ResourceId 0,
+                                    nrofSRS-Ports port1,
+                                    transmissionComb n2 : 
+                                      {
+                                        combOffset-n2 0,
+                                        cyclicShift-n2 0
+                                      },
+                                    resourceMapping 
+                                    {
+                                      startPosition 2,
+                                      nrofSymbols n1,
+                                      repetitionFactor n1
+                                    },
+                                    freqDomainPosition 0,
+                                    freqDomainShift 0,
+                                    freqHopping 
+                                    {
+                                      c-SRS 17,
+                                      b-SRS 0,
+                                      b-hop 0
+                                    },
+                                    groupOrSequenceHopping neither,
+                                    resourceType aperiodic : 
+                                      {
+                                      },
+                                    sequenceId 911
+                                  }
+                                }
+                              }
+                          }
+                        }
+                      },
+                      firstActiveUplinkBWP-Id 1
+                    },
+                    pdsch-ServingCellConfig setup : 
+                      {
+                        nrofHARQ-ProcessesForPDSCH n16,
+                        maxMIMO-Layers 1
+                      },
+                    csi-MeasConfig setup : 
+                      {
+                        nzp-CSI-RS-ResourceToAddModList 
+                        {
+                          {
+                            nzp-CSI-RS-ResourceId 0,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation other : '000001'B,
+                              nrofPorts p2,
+                              firstOFDMSymbolInTimeDomain 12,
+                              cdm-Type fd-CDM2,
+                              density one : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots320 : 5
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 2,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 2,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 88,
+                            qcl-InfoPeriodicCSI-RS 32
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 3,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 6,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 88,
+                            qcl-InfoPeriodicCSI-RS 32
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 4,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 3,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 88,
+                            qcl-InfoPeriodicCSI-RS 33
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 5,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 7,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 88,
+                            qcl-InfoPeriodicCSI-RS 33
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 6,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 4,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 88,
+                            qcl-InfoPeriodicCSI-RS 34
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 7,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 8,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 88,
+                            qcl-InfoPeriodicCSI-RS 34
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 8,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 5,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 88,
+                            qcl-InfoPeriodicCSI-RS 35
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 9,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 9,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 88,
+                            qcl-InfoPeriodicCSI-RS 35
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 10,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 2,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 98,
+                            qcl-InfoPeriodicCSI-RS 36
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 11,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 6,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 98,
+                            qcl-InfoPeriodicCSI-RS 36
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 12,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 3,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 98,
+                            qcl-InfoPeriodicCSI-RS 37
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 13,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 7,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 98,
+                            qcl-InfoPeriodicCSI-RS 37
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 14,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 4,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 98,
+                            qcl-InfoPeriodicCSI-RS 38
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 15,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 8,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 98,
+                            qcl-InfoPeriodicCSI-RS 38
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 16,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 5,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 98,
+                            qcl-InfoPeriodicCSI-RS 39
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 17,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 9,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 98,
+                            qcl-InfoPeriodicCSI-RS 39
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 34,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 2,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 128,
+                            qcl-InfoPeriodicCSI-RS 48
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 35,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 6,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 128,
+                            qcl-InfoPeriodicCSI-RS 48
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 36,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 3,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 128,
+                            qcl-InfoPeriodicCSI-RS 49
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 37,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 7,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 128,
+                            qcl-InfoPeriodicCSI-RS 49
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 38,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 4,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 128,
+                            qcl-InfoPeriodicCSI-RS 50
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 39,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 8,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 128,
+                            qcl-InfoPeriodicCSI-RS 50
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 40,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 5,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 128,
+                            qcl-InfoPeriodicCSI-RS 51
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 41,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 9,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 128,
+                            qcl-InfoPeriodicCSI-RS 51
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 42,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 2,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 138,
+                            qcl-InfoPeriodicCSI-RS 52
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 43,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 6,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 138,
+                            qcl-InfoPeriodicCSI-RS 52
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 44,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 3,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 138,
+                            qcl-InfoPeriodicCSI-RS 53
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 45,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 7,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 138,
+                            qcl-InfoPeriodicCSI-RS 53
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 46,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 4,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 138,
+                            qcl-InfoPeriodicCSI-RS 54
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 47,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 8,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 138,
+                            qcl-InfoPeriodicCSI-RS 54
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 64,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 5,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 158,
+                            qcl-InfoPeriodicCSI-RS 63
+                          },
+                          {
+                            nzp-CSI-RS-ResourceId 65,
+                            resourceMapping 
+                            {
+                              frequencyDomainAllocation row1 : '0001'B,
+                              nrofPorts p1,
+                              firstOFDMSymbolInTimeDomain 9,
+                              cdm-Type noCDM,
+                              density three : NULL,
+                              freqBand 
+                              {
+                                startingRB 0,
+                                nrofRBs 68
+                              }
+                            },
+                            powerControlOffset -8,
+                            powerControlOffsetSS db0,
+                            scramblingID 911,
+                            periodicityAndOffset slots640 : 158,
+                            qcl-InfoPeriodicCSI-RS 63
+                          }
+                        },
+                        nzp-CSI-RS-ResourceSetToAddModList 
+                        {
+                          {
+                            nzp-CSI-ResourceSetId 0,
+                            nzp-CSI-RS-Resources 
+                            {
+                              0
+                            }
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 2,
+                            nzp-CSI-RS-Resources 
+                            {
+                              2,
+                              3
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 3,
+                            nzp-CSI-RS-Resources 
+                            {
+                              4,
+                              5
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 4,
+                            nzp-CSI-RS-Resources 
+                            {
+                              6,
+                              7
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 5,
+                            nzp-CSI-RS-Resources 
+                            {
+                              8,
+                              9
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 6,
+                            nzp-CSI-RS-Resources 
+                            {
+                              10,
+                              11
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 7,
+                            nzp-CSI-RS-Resources 
+                            {
+                              12,
+                              13
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 8,
+                            nzp-CSI-RS-Resources 
+                            {
+                              14,
+                              15
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 9,
+                            nzp-CSI-RS-Resources 
+                            {
+                              16,
+                              17
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 18,
+                            nzp-CSI-RS-Resources 
+                            {
+                              34,
+                              35
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 19,
+                            nzp-CSI-RS-Resources 
+                            {
+                              36,
+                              37
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 20,
+                            nzp-CSI-RS-Resources 
+                            {
+                              38,
+                              39
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 21,
+                            nzp-CSI-RS-Resources 
+                            {
+                              40,
+                              41
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 22,
+                            nzp-CSI-RS-Resources 
+                            {
+                              42,
+                              43
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 23,
+                            nzp-CSI-RS-Resources 
+                            {
+                              44,
+                              45
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 24,
+                            nzp-CSI-RS-Resources 
+                            {
+                              46,
+                              47
+                            },
+                            repetition off,
+                            trs-Info true
+                          },
+                          {
+                            nzp-CSI-ResourceSetId 33,
+                            nzp-CSI-RS-Resources 
+                            {
+                              64,
+                              65
+                            },
+                            repetition off,
+                            trs-Info true
+                          }
+                        },
+                        csi-IM-ResourceToAddModList 
+                        {
+                          {
+                            csi-IM-ResourceId 0,
+                            csi-IM-ResourceElementPattern pattern1 : 
+                              {
+                                subcarrierLocation-p1 s4,
+                                symbolLocation-p1 12
+                              },
+                            freqBand 
+                            {
+                              startingRB 0,
+                              nrofRBs 68
+                            },
+                            periodicityAndOffset slots320 : 5
+                          }
+                        },
+                        csi-IM-ResourceSetToAddModList 
+                        {
+                          {
+                            csi-IM-ResourceSetId 0,
+                            csi-IM-Resources 
+                            {
+                              0
+                            }
+                          }
+                        },
+                        csi-SSB-ResourceSetToAddModList 
+                        {
+                          {
+                            csi-SSB-ResourceSetId 0,
+                            csi-SSB-ResourceList 
+                            {
+                              4,
+                              5,
+                              6,
+                              7,
+                              12,
+                              13,
+                              14,
+                              15,
+                              20,
+                              21,
+                              22,
+                              23,
+                              28,
+                              29,
+                              30,
+                              31,
+                              36,
+                              37,
+                              38,
+                              39,
+                              44,
+                              45,
+                              46,
+                              47,
+                              52,
+                              53,
+                              54,
+                              55,
+                              60,
+                              61,
+                              62,
+                              63
+                            }
+                          }
+                        },
+                        csi-ResourceConfigToAddModList 
+                        {
+                          {
+                            csi-ResourceConfigId 0,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  0
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 2,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  2
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 3,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  3
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 4,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  4
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 5,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  5
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 6,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  6
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 7,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  7
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 8,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  8
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 9,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  9
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 13,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  18
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 14,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  19
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 15,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  20
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 16,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  21
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 17,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  22
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 18,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  23
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 19,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  24
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 20,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                nzp-CSI-RS-ResourceSetList 
+                                {
+                                  33
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 10,
+                            csi-RS-ResourceSetList nzp-CSI-RS-SSB : 
+                              {
+                                csi-SSB-ResourceSetList 
+                                {
+                                  0
+                                }
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          },
+                          {
+                            csi-ResourceConfigId 11,
+                            csi-RS-ResourceSetList csi-IM-ResourceSetList : 
+                              {
+                                0
+                              },
+                            bwp-Id 1,
+                            resourceType periodic
+                          }
+                        },
+                        csi-ReportConfigToAddModList 
+                        {
+                          {
+                            reportConfigId 0,
+                            resourcesForChannelMeasurement 0,
+                            csi-IM-ResourcesForInterference 11,
+                            reportConfigType periodic : 
+                              {
+                                reportSlotConfig slots320 : 9,
+                                pucch-CSI-ResourceList 
+                                {
+                                  {
+                                    uplinkBandwidthPartId 1,
+                                    pucch-Resource 11
+                                  }
+                                }
+                              },
+                            reportQuantity cri-RI-PMI-CQI : NULL,
+                            reportFreqConfiguration 
+                            {
+                              cqi-FormatIndicator widebandCQI,
+                              pmi-FormatIndicator widebandPMI,
+                              csi-ReportingBand subbands17 : '11111111 11111111 1'B
+                            },
+                            timeRestrictionForChannelMeasurements configured,
+                            timeRestrictionForInterferenceMeasurements configured,
+                            codebookConfig 
+                            {
+                              codebookType type1 : 
+                                {
+                                  subType typeI-SinglePanel : 
+                                    {
+                                      nrOfAntennaPorts two : 
+                                        {
+                                          twoTX-CodebookSubsetRestriction '111111'B
+                                        },
+                                      typeI-SinglePanel-ri-Restriction '00000001'B
+                                    },
+                                  codebookMode 1
+                                }
+                            },
+                            groupBasedBeamReporting disabled : 
+                              {
+                              },
+                            cqi-Table table1,
+                            subbandSize value1
+                          },
+                          {
+                            reportConfigId 2,
+                            resourcesForChannelMeasurement 10,
+                            reportConfigType periodic : 
+                              {
+                                reportSlotConfig slots320 : 19,
+                                pucch-CSI-ResourceList 
+                                {
+                                  {
+                                    uplinkBandwidthPartId 1,
+                                    pucch-Resource 12
+                                  }
+                                }
+                              },
+                            reportQuantity ssb-Index-RSRP : NULL,
+                            timeRestrictionForChannelMeasurements notConfigured,
+                            timeRestrictionForInterferenceMeasurements notConfigured,
+                            groupBasedBeamReporting disabled : 
+                              {
+                                nrofReportedRS n2
+                              },
+                            cqi-Table table1,
+                            subbandSize value1
+                          }
+                        }
+                      },
+                    tag-Id 0
+                  }
+                }
+              }
+          }
+      }
+}
